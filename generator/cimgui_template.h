@@ -40,6 +40,7 @@ typedef unsigned __int64 ImU64;
 #endif
 #endif
 
+PLACE_STRUCTS_C
 
 #ifdef CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 #include "imgui_structs.h"

@@ -124,10 +124,14 @@ local function func_header_impl_generate(FP)
 
     local outtab = {}
     
-    for _,t in ipairs(FP.funcdefs) do
-        if t.cimguiname then
-            local cimf = FP.defsT[t.cimguiname]
-            local def = cimf[t.signature]
+    -- for _,t in ipairs(FP.funcdefs) do
+        -- if t.cimguiname then
+            -- local cimf = FP.defsT[t.cimguiname]
+            -- local def = cimf[t.signature]
+		--for k,defs in pairs(FP.defsT) do
+		cpp2ffi.table_do_sorted(FP.defsT, function(i,defs)
+		   if true then
+		   for i, def in ipairs(defs) do
 			local addcoment = def.comment or ""
 			local empty = def.args:match("^%(%)") --no args
 			if def.constructor then
@@ -147,10 +151,11 @@ local function func_header_impl_generate(FP)
                     error("class function in implementations")
                 end
             end
+		end
         else --not cimguiname
             table.insert(outtab,t.comment:gsub("%%","%%%%").."\n")-- %% substitution for gsub
         end
-    end
+    end)
     local cfuncsstr = table.concat(outtab)
     cfuncsstr = cfuncsstr:gsub("\n+","\n") --several empty lines to one empty line
     return cfuncsstr
@@ -271,7 +276,10 @@ local function cimgui_generation(parser)
 --]]
 	--------------------------------------------------
     local hstrfile = read_data"./cimgui_template.h"
-
+	
+	
+	hstrfile = hstrfile:gsub([[PLACE_STRUCTS_C]],parser:gen_structs_c())
+	
 	local outpre,outpost = parser.structs_and_enums[1],parser.structs_and_enums[2]
 	cpp2ffi.prtable(parser.templates)
 	cpp2ffi.prtable(parser.typenames)
@@ -310,7 +318,10 @@ local function cimgui_generation(parser)
     local cimplem = func_implementation(parser)
 	cimplem = colapse_defines(cimplem, "IMGUI_ENABLE_FREETYPE")
     local hstrfile = read_data"./cimgui_template.cpp"
-
+	
+	local conversors = parser:genConversors()
+	cimplem = conversors .. cimplem
+	
     hstrfile = hstrfile:gsub([[#include "auto_funcs%.cpp"]],cimplem)
 	local ftdef = "" --FREETYPE_GENERATION and "#define IMGUI_ENABLE_FREETYPE\n" or ""
     save_data("./output/cimgui.cpp",cimgui_header, ftdef, hstrfile)
