@@ -1125,7 +1125,8 @@ local function gen_structs_c(FP)
 	end
 	--print(table.concat(tabs_c,"\n"))
 	--print(table.concat(tabs,"\n"))
-	return table.concat(tabs_c,"\n").."\n"..table.concat(tabs,"\n")
+	--return table.concat(tabs_c,"\n").."\n"..table.concat(tabs,"\n")
+	return table.concat(tabs,"\n")
 end
 local function gen_field_conversion(tab, struct, FP, prefix)
 	prefix = prefix or ""
@@ -1224,12 +1225,44 @@ local function ADDnonUDT(FP)
 	for k,defs in pairs(FP.defsT) do
 		for i, def in ipairs(defs) do 
 			--ret
-			--local typret = (def.ret):gsub("const ","")
 			if FP.nP_ret[def.ret] then
 				def.conv = (def.ret):gsub("const ","")
 				def.ret = FP.nP_ret[def.ret]
 				def.nonUDT = 1
 			end
+			--args
+			local caar,asp
+			if #def.argsT > 0 then
+				caar = "("
+				asp = "("
+				for i,v in ipairs(def.argsT) do
+					local name = v.name 
+					if v.ret then --function pointer
+						local f_ = v.has_cdecl and "(__cdecl*" or "(*"
+						asp = asp .. v.ret .. f_ .. v.name .. ")" .. v.signature .. ","
+						caar = caar .. name .. ","
+					else
+						if FP.nP_args[v.type] then
+							local typ = v.type:gsub("const ","")
+							caar = caar .. "ConvertToCPP_"..typ.."("..name.."),"
+							asp = asp .. v.type:gsub(typ,typ.."_c").." "..v.name..","
+						else
+							local siz = v.type:match("(%[%d*%])") or ""
+							local typ = v.type:gsub("(%[%d*%])","")
+							asp = asp .. typ .. (v.name~="..." and " "..v.name or "") .. siz .. ","
+							local callname = v.reftoptr and "*"..name or name 
+							caar = caar .. callname .. ","
+						end
+					end
+				end
+				caar = caar:sub(1,-2)..")"
+				asp = asp:sub(1,-2)..")"
+			else
+				caar = "()"
+				asp = "()"
+			end
+			def.call_args = caar
+			def.args = asp
 		end
 	end
 end
@@ -2357,9 +2390,9 @@ function M.Parser()
 		end)
         --print(numoverloaded, "overloaded")
         table.insert(strt,string.format("%d overloaded",numoverloaded))
-		--ADDIMSTR_S(self)
-		AdjustArguments(self)
 		ADDnonUDT(self)
+		AdjustArguments(self)
+		--ADDnonUDT(self)
 
 		--ADDdestructors(self)
         self.overloadstxt  = table.concat(strt,"\n")
@@ -2826,7 +2859,7 @@ local function ImGui_f_implementation(def)
     elseif def.nonUDT then
         if def.nonUDT == 1 then
             --table.insert(outtab,"    *pOut = "..namespace..def.funcname..def.call_args..";\n")
-			insert(outtab,"    return ConverFromCPP_ImVec2("..namespace..def.funcname..def.call_args..");\n")
+			insert(outtab,"    return ConvertFromCPP_"..def.conv.."("..namespace..def.funcname..def.call_args..");\n")
         end
 		table.insert(outtab,"}\n")
     else --standard ImGui
@@ -2862,7 +2895,7 @@ local function struct_f_implementation(def)
         if def.nonUDT == 1 then
             --table.insert(outtab,"    *pOut = self->"..def.funcname..def.call_args..";\n")
 			--local typret = (def.ret):gsub("const ","")
-			insert(outtab,"    return ConverFromCPP_"..def.conv.."(self->"..def.funcname..def.call_args..");\n")
+			insert(outtab,"    return ConvertFromCPP_"..def.conv.."(self->"..def.funcname..def.call_args..");\n")
         end
     else --standard struct
         table.insert(outtab,"    return "..ptret.."self->"..def.funcname..def.call_args..";\n")
