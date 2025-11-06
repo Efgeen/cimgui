@@ -3810,6 +3810,8 @@ typedef enum {
 
 #define ImDrawCallback_ResetRenderState       (ImDrawCallback)(-8)
 
+#define ImTextureID_Invalid       ((ImTextureID)0)
+
 #else
 struct GLFWwindow;
 struct SDL_Window;
