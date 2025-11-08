@@ -286,6 +286,7 @@ local function cimgui_generation(parser)
 	
 
 	local  tdt = parser:generate_templates()
+	--local cstructsstr = "\n//7777estio es outpre\n"..outpre.."\n///////////////tdt\n"..tdt.."\n////////////////////outpost\n"..outpost 
 	local cstructsstr = outpre..tdt..outpost 
     
 	if gdefines.IMGUI_HAS_DOCK then

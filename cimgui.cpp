@@ -513,9 +513,9 @@ CIMGUI_API ImU32 igGetColorU32_U32(ImU32 col,float alpha_mul)
 {
     return ImGui::GetColorU32(col,alpha_mul);
 }
-CIMGUI_API const ImVec4* igGetStyleColorVec4(ImGuiCol idx)
+CIMGUI_API const ImVec4_c* igGetStyleColorVec4(ImGuiCol idx)
 {
-    return &ImGui::GetStyleColorVec4(idx);
+    return reinterpret_cast<const ImVec4_c*>(&ImGui::GetStyleColorVec4(idx));
 }
 CIMGUI_API ImVec2_c igGetCursorScreenPos()
 {
@@ -1786,9 +1786,9 @@ CIMGUI_API bool igIsMouseHoveringRect(const ImVec2_c r_min,const ImVec2_c r_max,
 {
     return ImGui::IsMouseHoveringRect(ConvertToCPP_ImVec2(r_min),ConvertToCPP_ImVec2(r_max),clip);
 }
-CIMGUI_API bool igIsMousePosValid(const ImVec2* mouse_pos)
+CIMGUI_API bool igIsMousePosValid(const ImVec2_c* mouse_pos)
 {
-    return ImGui::IsMousePosValid(mouse_pos);
+    return ImGui::IsMousePosValid(reinterpret_cast<const ImVec2*>(mouse_pos));
 }
 CIMGUI_API bool igIsAnyMouseDown()
 {
@@ -2519,17 +2519,17 @@ CIMGUI_API void ImDrawList_AddBezierQuadratic(ImDrawList* self,const ImVec2_c p1
 {
     return self->AddBezierQuadratic(ConvertToCPP_ImVec2(p1),ConvertToCPP_ImVec2(p2),ConvertToCPP_ImVec2(p3),col,thickness,num_segments);
 }
-CIMGUI_API void ImDrawList_AddPolyline(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness)
+CIMGUI_API void ImDrawList_AddPolyline(ImDrawList* self,const ImVec2_c* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness)
 {
-    return self->AddPolyline(points,num_points,col,flags,thickness);
+    return self->AddPolyline(reinterpret_cast<const ImVec2*>(points),num_points,col,flags,thickness);
 }
-CIMGUI_API void ImDrawList_AddConvexPolyFilled(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col)
+CIMGUI_API void ImDrawList_AddConvexPolyFilled(ImDrawList* self,const ImVec2_c* points,int num_points,ImU32 col)
 {
-    return self->AddConvexPolyFilled(points,num_points,col);
+    return self->AddConvexPolyFilled(reinterpret_cast<const ImVec2*>(points),num_points,col);
 }
-CIMGUI_API void ImDrawList_AddConcavePolyFilled(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col)
+CIMGUI_API void ImDrawList_AddConcavePolyFilled(ImDrawList* self,const ImVec2_c* points,int num_points,ImU32 col)
 {
-    return self->AddConcavePolyFilled(points,num_points,col);
+    return self->AddConcavePolyFilled(reinterpret_cast<const ImVec2*>(points),num_points,col);
 }
 CIMGUI_API void ImDrawList_AddImage(ImDrawList* self,ImTextureRef_c tex_ref,const ImVec2_c p_min,const ImVec2_c p_max,const ImVec2_c uv_min,const ImVec2_c uv_max,ImU32 col)
 {
@@ -3230,9 +3230,9 @@ CIMGUI_API int igImTextCountLines(const char* in_text,const char* in_text_end)
 {
     return ImTextCountLines(in_text,in_text_end);
 }
-CIMGUI_API ImVec2_c igImFontCalcTextSizeEx(ImFont* font,float size,float max_width,float wrap_width,const char* text_begin,const char* text_end_display,const char* text_end,const char** out_remaining,ImVec2* out_offset,ImDrawTextFlags flags)
+CIMGUI_API ImVec2_c igImFontCalcTextSizeEx(ImFont* font,float size,float max_width,float wrap_width,const char* text_begin,const char* text_end_display,const char* text_end,const char** out_remaining,ImVec2_c* out_offset,ImDrawTextFlags flags)
 {
-    return ConvertFromCPP_ImVec2(ImFontCalcTextSizeEx(font,size,max_width,wrap_width,text_begin,text_end_display,text_end,out_remaining,out_offset,flags));
+    return ConvertFromCPP_ImVec2(ImFontCalcTextSizeEx(font,size,max_width,wrap_width,text_begin,text_end_display,text_end,out_remaining,reinterpret_cast<ImVec2*>(out_offset),flags));
 }
 CIMGUI_API const char* igImFontCalcWordWrapPositionEx(ImFont* font,float size,const char* text,const char* text_end,float wrap_width,ImDrawTextFlags flags)
 {
@@ -3606,9 +3606,9 @@ CIMGUI_API ImVec4_c ImRect_ToVec4(ImRect* self)
 {
     return ConvertFromCPP_ImVec4(self->ToVec4());
 }
-CIMGUI_API const ImVec4* ImRect_AsVec4(ImRect* self)
+CIMGUI_API const ImVec4_c* ImRect_AsVec4(ImRect* self)
 {
-    return &self->AsVec4();
+    return reinterpret_cast<const ImVec4_c*>(&self->AsVec4());
 }
 CIMGUI_API size_t igImBitArrayGetStorageSizeInBytes(int bitcount)
 {
@@ -4754,9 +4754,9 @@ CIMGUI_API void igLogToBuffer(int auto_open_depth)
 {
     return ImGui::LogToBuffer(auto_open_depth);
 }
-CIMGUI_API void igLogRenderedText(const ImVec2* ref_pos,const char* text,const char* text_end)
+CIMGUI_API void igLogRenderedText(const ImVec2_c* ref_pos,const char* text,const char* text_end)
 {
-    return ImGui::LogRenderedText(ref_pos,text,text_end);
+    return ImGui::LogRenderedText(reinterpret_cast<const ImVec2*>(ref_pos),text,text_end);
 }
 CIMGUI_API void igLogSetNextTextDecoration(const char* prefix,const char* suffix)
 {
@@ -5138,9 +5138,9 @@ CIMGUI_API void igDockContextProcessUndockNode(ImGuiContext* ctx,ImGuiDockNode* 
 {
     return ImGui::DockContextProcessUndockNode(ctx,node);
 }
-CIMGUI_API bool igDockContextCalcDropPosForDocking(ImGuiWindow* target,ImGuiDockNode* target_node,ImGuiWindow* payload_window,ImGuiDockNode* payload_node,ImGuiDir split_dir,bool split_outer,ImVec2* out_pos)
+CIMGUI_API bool igDockContextCalcDropPosForDocking(ImGuiWindow* target,ImGuiDockNode* target_node,ImGuiWindow* payload_window,ImGuiDockNode* payload_node,ImGuiDir split_dir,bool split_outer,ImVec2_c* out_pos)
 {
-    return ImGui::DockContextCalcDropPosForDocking(target,target_node,payload_window,payload_node,split_dir,split_outer,out_pos);
+    return ImGui::DockContextCalcDropPosForDocking(target,target_node,payload_window,payload_node,split_dir,split_outer,reinterpret_cast<ImVec2*>(out_pos));
 }
 CIMGUI_API ImGuiDockNode* igDockContextFindNodeByID(ImGuiContext* ctx,ImGuiID id)
 {
@@ -5694,17 +5694,17 @@ CIMGUI_API void igRenderTextWrapped(ImVec2_c pos,const char* text,const char* te
 {
     return ImGui::RenderTextWrapped(ConvertToCPP_ImVec2(pos),text,text_end,wrap_width);
 }
-CIMGUI_API void igRenderTextClipped(const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)
+CIMGUI_API void igRenderTextClipped(const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2_c* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)
 {
-    return ImGui::RenderTextClipped(ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,text_size_if_known,ConvertToCPP_ImVec2(align),clip_rect);
+    return ImGui::RenderTextClipped(ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,reinterpret_cast<const ImVec2*>(text_size_if_known),ConvertToCPP_ImVec2(align),clip_rect);
 }
-CIMGUI_API void igRenderTextClippedEx(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)
+CIMGUI_API void igRenderTextClippedEx(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2_c* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)
 {
-    return ImGui::RenderTextClippedEx(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,text_size_if_known,ConvertToCPP_ImVec2(align),clip_rect);
+    return ImGui::RenderTextClippedEx(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,reinterpret_cast<const ImVec2*>(text_size_if_known),ConvertToCPP_ImVec2(align),clip_rect);
 }
-CIMGUI_API void igRenderTextEllipsis(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,float ellipsis_max_x,const char* text,const char* text_end,const ImVec2* text_size_if_known)
+CIMGUI_API void igRenderTextEllipsis(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,float ellipsis_max_x,const char* text,const char* text_end,const ImVec2_c* text_size_if_known)
 {
-    return ImGui::RenderTextEllipsis(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),ellipsis_max_x,text,text_end,text_size_if_known);
+    return ImGui::RenderTextEllipsis(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),ellipsis_max_x,text,text_end,reinterpret_cast<const ImVec2*>(text_size_if_known));
 }
 CIMGUI_API void igRenderFrame(ImVec2_c p_min,ImVec2_c p_max,ImU32 fill_col,bool borders,float rounding)
 {
@@ -6403,9 +6403,9 @@ CIMGUI_API void igImFontAtlasDebugLogTextureRequests(ImFontAtlas* atlas)
 {
     return ImFontAtlasDebugLogTextureRequests(atlas);
 }
-CIMGUI_API bool igImFontAtlasGetMouseCursorTexData(ImFontAtlas* atlas,ImGuiMouseCursor cursor_type,ImVec2* out_offset,ImVec2* out_size,ImVec2 out_uv_border[2],ImVec2 out_uv_fill[2])
+CIMGUI_API bool igImFontAtlasGetMouseCursorTexData(ImFontAtlas* atlas,ImGuiMouseCursor cursor_type,ImVec2_c* out_offset,ImVec2_c* out_size,ImVec2 out_uv_border[2],ImVec2 out_uv_fill[2])
 {
-    return ImFontAtlasGetMouseCursorTexData(atlas,cursor_type,out_offset,out_size,out_uv_border,out_uv_fill);
+    return ImFontAtlasGetMouseCursorTexData(atlas,cursor_type,reinterpret_cast<ImVec2*>(out_offset),reinterpret_cast<ImVec2*>(out_size),out_uv_border,out_uv_fill);
 }
 #ifdef IMGUI_ENABLE_FREETYPE
 CIMGUI_API const ImFontLoader* ImGuiFreeType_GetFontLoader()

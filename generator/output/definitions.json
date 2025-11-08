@@ -1457,7 +1457,7 @@
   ],
   "ImDrawList_AddConcavePolyFilled": [
     {
-      "args": "(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col)",
+      "args": "(ImDrawList* self,const ImVec2_c* points,int num_points,ImU32 col)",
       "argsT": [
         {
           "name": "self",
@@ -1477,7 +1477,7 @@
         }
       ],
       "argsoriginal": "(const ImVec2* points,int num_points,ImU32 col)",
-      "call_args": "(points,num_points,col)",
+      "call_args": "(reinterpret_cast<const ImVec2*>(points),num_points,col)",
       "cimguiname": "ImDrawList_AddConcavePolyFilled",
       "defaults": {},
       "funcname": "AddConcavePolyFilled",
@@ -1490,7 +1490,7 @@
   ],
   "ImDrawList_AddConvexPolyFilled": [
     {
-      "args": "(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col)",
+      "args": "(ImDrawList* self,const ImVec2_c* points,int num_points,ImU32 col)",
       "argsT": [
         {
           "name": "self",
@@ -1510,7 +1510,7 @@
         }
       ],
       "argsoriginal": "(const ImVec2* points,int num_points,ImU32 col)",
-      "call_args": "(points,num_points,col)",
+      "call_args": "(reinterpret_cast<const ImVec2*>(points),num_points,col)",
       "cimguiname": "ImDrawList_AddConvexPolyFilled",
       "defaults": {},
       "funcname": "AddConvexPolyFilled",
@@ -1927,7 +1927,7 @@
   ],
   "ImDrawList_AddPolyline": [
     {
-      "args": "(ImDrawList* self,const ImVec2* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness)",
+      "args": "(ImDrawList* self,const ImVec2_c* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness)",
       "argsT": [
         {
           "name": "self",
@@ -1955,7 +1955,7 @@
         }
       ],
       "argsoriginal": "(const ImVec2* points,int num_points,ImU32 col,ImDrawFlags flags,float thickness)",
-      "call_args": "(points,num_points,col,flags,thickness)",
+      "call_args": "(reinterpret_cast<const ImVec2*>(points),num_points,col,flags,thickness)",
       "cimguiname": "ImDrawList_AddPolyline",
       "defaults": {},
       "funcname": "AddPolyline",
@@ -11538,8 +11538,9 @@
       "defaults": {},
       "funcname": "AsVec4",
       "location": "imgui_internal:619",
+      "nonUDT": 2,
       "ov_cimguiname": "ImRect_AsVec4",
-      "ret": "const ImVec4*",
+      "ret": "const ImVec4_c*",
       "retref": "&",
       "signature": "()const",
       "stname": "ImRect"
@@ -19053,7 +19054,7 @@
   ],
   "igDockContextCalcDropPosForDocking": [
     {
-      "args": "(ImGuiWindow* target,ImGuiDockNode* target_node,ImGuiWindow* payload_window,ImGuiDockNode* payload_node,ImGuiDir split_dir,bool split_outer,ImVec2* out_pos)",
+      "args": "(ImGuiWindow* target,ImGuiDockNode* target_node,ImGuiWindow* payload_window,ImGuiDockNode* payload_node,ImGuiDir split_dir,bool split_outer,ImVec2_c* out_pos)",
       "argsT": [
         {
           "name": "target",
@@ -19085,7 +19086,7 @@
         }
       ],
       "argsoriginal": "(ImGuiWindow* target,ImGuiDockNode* target_node,ImGuiWindow* payload_window,ImGuiDockNode* payload_node,ImGuiDir split_dir,bool split_outer,ImVec2* out_pos)",
-      "call_args": "(target,target_node,payload_window,payload_node,split_dir,split_outer,out_pos)",
+      "call_args": "(target,target_node,payload_window,payload_node,split_dir,split_outer,reinterpret_cast<ImVec2*>(out_pos))",
       "cimguiname": "igDockContextCalcDropPosForDocking",
       "defaults": {},
       "funcname": "DockContextCalcDropPosForDocking",
@@ -23279,8 +23280,9 @@
       "funcname": "GetStyleColorVec4",
       "location": "imgui:557",
       "namespace": "ImGui",
+      "nonUDT": 2,
       "ov_cimguiname": "igGetStyleColorVec4",
-      "ret": "const ImVec4*",
+      "ret": "const ImVec4_c*",
       "retref": "&",
       "signature": "(ImGuiCol)",
       "stname": ""
@@ -25380,7 +25382,7 @@
   ],
   "igImFontAtlasGetMouseCursorTexData": [
     {
-      "args": "(ImFontAtlas* atlas,ImGuiMouseCursor cursor_type,ImVec2* out_offset,ImVec2* out_size,ImVec2 out_uv_border[2],ImVec2 out_uv_fill[2])",
+      "args": "(ImFontAtlas* atlas,ImGuiMouseCursor cursor_type,ImVec2_c* out_offset,ImVec2_c* out_size,ImVec2 out_uv_border[2],ImVec2 out_uv_fill[2])",
       "argsT": [
         {
           "name": "atlas",
@@ -25408,7 +25410,7 @@
         }
       ],
       "argsoriginal": "(ImFontAtlas* atlas,ImGuiMouseCursor cursor_type,ImVec2* out_offset,ImVec2* out_size,ImVec2 out_uv_border[2],ImVec2 out_uv_fill[2])",
-      "call_args": "(atlas,cursor_type,out_offset,out_size,out_uv_border,out_uv_fill)",
+      "call_args": "(atlas,cursor_type,reinterpret_cast<ImVec2*>(out_offset),reinterpret_cast<ImVec2*>(out_size),out_uv_border,out_uv_fill)",
       "cimguiname": "igImFontAtlasGetMouseCursorTexData",
       "defaults": {},
       "funcname": "ImFontAtlasGetMouseCursorTexData",
@@ -26104,7 +26106,7 @@
   ],
   "igImFontCalcTextSizeEx": [
     {
-      "args": "(ImFont* font,float size,float max_width,float wrap_width,const char* text_begin,const char* text_end_display,const char* text_end,const char** out_remaining,ImVec2* out_offset,ImDrawTextFlags flags)",
+      "args": "(ImFont* font,float size,float max_width,float wrap_width,const char* text_begin,const char* text_end_display,const char* text_end,const char** out_remaining,ImVec2_c* out_offset,ImDrawTextFlags flags)",
       "argsT": [
         {
           "name": "font",
@@ -26148,7 +26150,7 @@
         }
       ],
       "argsoriginal": "(ImFont* font,float size,float max_width,float wrap_width,const char* text_begin,const char* text_end_display,const char* text_end,const char** out_remaining,ImVec2* out_offset,ImDrawTextFlags flags)",
-      "call_args": "(font,size,max_width,wrap_width,text_begin,text_end_display,text_end,out_remaining,out_offset,flags)",
+      "call_args": "(font,size,max_width,wrap_width,text_begin,text_end_display,text_end,out_remaining,reinterpret_cast<ImVec2*>(out_offset),flags)",
       "cimguiname": "igImFontCalcTextSizeEx",
       "conv": "ImVec2",
       "defaults": {},
@@ -30129,7 +30131,7 @@
   ],
   "igIsMousePosValid": [
     {
-      "args": "(const ImVec2* mouse_pos)",
+      "args": "(const ImVec2_c* mouse_pos)",
       "argsT": [
         {
           "name": "mouse_pos",
@@ -30137,7 +30139,7 @@
         }
       ],
       "argsoriginal": "(const ImVec2* mouse_pos=((void*)0))",
-      "call_args": "(mouse_pos)",
+      "call_args": "(reinterpret_cast<const ImVec2*>(mouse_pos))",
       "cimguiname": "igIsMousePosValid",
       "defaults": {
         "mouse_pos": "NULL"
@@ -31048,7 +31050,7 @@
   ],
   "igLogRenderedText": [
     {
-      "args": "(const ImVec2* ref_pos,const char* text,const char* text_end)",
+      "args": "(const ImVec2_c* ref_pos,const char* text,const char* text_end)",
       "argsT": [
         {
           "name": "ref_pos",
@@ -31064,7 +31066,7 @@
         }
       ],
       "argsoriginal": "(const ImVec2* ref_pos,const char* text,const char* text_end=((void*)0))",
-      "call_args": "(ref_pos,text,text_end)",
+      "call_args": "(reinterpret_cast<const ImVec2*>(ref_pos),text,text_end)",
       "cimguiname": "igLogRenderedText",
       "defaults": {
         "text_end": "NULL"
@@ -33843,7 +33845,7 @@
   ],
   "igRenderTextClipped": [
     {
-      "args": "(const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)",
+      "args": "(const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2_c* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)",
       "argsT": [
         {
           "name": "pos_min",
@@ -33875,7 +33877,7 @@
         }
       ],
       "argsoriginal": "(const ImVec2& pos_min,const ImVec2& pos_max,const char* text,const char* text_end,const ImVec2* text_size_if_known,const ImVec2& align=ImVec2(0,0),const ImRect* clip_rect=((void*)0))",
-      "call_args": "(ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,text_size_if_known,ConvertToCPP_ImVec2(align),clip_rect)",
+      "call_args": "(ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,reinterpret_cast<const ImVec2*>(text_size_if_known),ConvertToCPP_ImVec2(align),clip_rect)",
       "cimguiname": "igRenderTextClipped",
       "defaults": {
         "align": "ImVec2(0,0)",
@@ -33892,7 +33894,7 @@
   ],
   "igRenderTextClippedEx": [
     {
-      "args": "(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)",
+      "args": "(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,const char* text,const char* text_end,const ImVec2_c* text_size_if_known,const ImVec2_c align,const ImRect* clip_rect)",
       "argsT": [
         {
           "name": "draw_list",
@@ -33928,7 +33930,7 @@
         }
       ],
       "argsoriginal": "(ImDrawList* draw_list,const ImVec2& pos_min,const ImVec2& pos_max,const char* text,const char* text_end,const ImVec2* text_size_if_known,const ImVec2& align=ImVec2(0,0),const ImRect* clip_rect=((void*)0))",
-      "call_args": "(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,text_size_if_known,ConvertToCPP_ImVec2(align),clip_rect)",
+      "call_args": "(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),text,text_end,reinterpret_cast<const ImVec2*>(text_size_if_known),ConvertToCPP_ImVec2(align),clip_rect)",
       "cimguiname": "igRenderTextClippedEx",
       "defaults": {
         "align": "ImVec2(0,0)",
@@ -33945,7 +33947,7 @@
   ],
   "igRenderTextEllipsis": [
     {
-      "args": "(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,float ellipsis_max_x,const char* text,const char* text_end,const ImVec2* text_size_if_known)",
+      "args": "(ImDrawList* draw_list,const ImVec2_c pos_min,const ImVec2_c pos_max,float ellipsis_max_x,const char* text,const char* text_end,const ImVec2_c* text_size_if_known)",
       "argsT": [
         {
           "name": "draw_list",
@@ -33977,7 +33979,7 @@
         }
       ],
       "argsoriginal": "(ImDrawList* draw_list,const ImVec2& pos_min,const ImVec2& pos_max,float ellipsis_max_x,const char* text,const char* text_end,const ImVec2* text_size_if_known)",
-      "call_args": "(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),ellipsis_max_x,text,text_end,text_size_if_known)",
+      "call_args": "(draw_list,ConvertToCPP_ImVec2(pos_min),ConvertToCPP_ImVec2(pos_max),ellipsis_max_x,text,text_end,reinterpret_cast<const ImVec2*>(text_size_if_known))",
       "cimguiname": "igRenderTextEllipsis",
       "defaults": {},
       "funcname": "RenderTextEllipsis",
