@@ -1289,6 +1289,7 @@ local function ADDnonUDT(FP)
 				caar = "()"
 				asp = "()"
 			end
+			def.call_args_old = def.call_args
 			def.call_args = caar
 			def.args = asp
 		end
