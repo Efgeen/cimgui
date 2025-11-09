@@ -3818,6 +3818,7 @@ struct SDL_Window;
 typedef union SDL_Event SDL_Event;
 #endif // CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 
+
 #ifdef CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 typedef struct ImColor_c ImColor;
 typedef struct ImRect_c ImRect;
@@ -3859,7 +3860,6 @@ struct ImVec4_c {
     float w;
 };
 #endif
-
 #ifndef CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 typedef struct ImGuiTextFilter::ImGuiTextRange ImGuiTextRange;
 typedef ImStb::STB_TexteditState STB_TexteditState;

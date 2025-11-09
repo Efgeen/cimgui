@@ -2990,7 +2990,9 @@ local function func_implementation(FP)
 		end
         until true
     end
-    return table.concat(outtab)
+	local conversors = FP:genConversors()
+	local cimplem = conversors .. table.concat(outtab)
+    return cimplem
 end
 
 M.func_implementation = func_implementation
@@ -3086,7 +3088,7 @@ M.func_header_generate_funcs = func_header_generate_funcs
 local function func_header_generate(FP)
 
     local outtab = func_header_generate_structs(FP)
-    table.insert(outtab, 1, "#ifndef CIMGUI_DEFINE_ENUMS_AND_STRUCTS\n")
+    table.insert(outtab, 1, "\n#ifndef CIMGUI_DEFINE_ENUMS_AND_STRUCTS\n")
     table.insert(outtab,"#endif //CIMGUI_DEFINE_ENUMS_AND_STRUCTS\n")
     
     local outtabf = func_header_generate_funcs(FP)
@@ -3095,7 +3097,8 @@ local function func_header_generate(FP)
     --outtabf = M.header_subs_nonPOD(FP,outtabf)
     local cfuncsstr = table.concat(outtab)..outtabf
     cfuncsstr = cfuncsstr:gsub("\n+","\n") --several empty lines to one empty line
-    return cfuncsstr
+	local structs_c = FP:gen_structs_c()
+    return structs_c..cfuncsstr
 end
 
 M.func_header_generate = func_header_generate

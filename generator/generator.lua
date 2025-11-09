@@ -278,7 +278,7 @@ local function cimgui_generation(parser)
     local hstrfile = read_data"./cimgui_template.h"
 	
 	
-	hstrfile = hstrfile:gsub([[PLACE_STRUCTS_C]],parser:gen_structs_c())
+	--hstrfile = hstrfile:gsub([[PLACE_STRUCTS_C]],parser:gen_structs_c())
 	
 	local outpre,outpost = parser.structs_and_enums[1],parser.structs_and_enums[2]
 	cpp2ffi.prtable(parser.templates)
@@ -322,9 +322,6 @@ local function cimgui_generation(parser)
     local cimplem = func_implementation(parser)
 	cimplem = colapse_defines(cimplem, "IMGUI_ENABLE_FREETYPE")
     local hstrfile = read_data"./cimgui_template.cpp"
-	
-	local conversors = parser:genConversors()
-	cimplem = conversors .. cimplem
 	
     hstrfile = hstrfile:gsub([[#include "auto_funcs%.cpp"]],cimplem)
 	local ftdef = "" --FREETYPE_GENERATION and "#define IMGUI_ENABLE_FREETYPE\n" or ""
