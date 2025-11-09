@@ -3820,23 +3820,14 @@ typedef union SDL_Event SDL_Event;
 
 
 #ifdef CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-typedef struct ImColor_c ImColor;
-typedef struct ImRect_c ImRect;
 typedef struct ImTextureRef_c ImTextureRef;
 typedef struct ImVec2_c ImVec2;
 typedef struct ImVec2i_c ImVec2i;
 typedef struct ImVec4_c ImVec4;
+typedef struct ImColor_c ImColor;
+typedef struct ImRect_c ImRect;
 #endif
 #ifndef CIMGUI_DEFINE_ENUMS_AND_STRUCTS
-typedef struct ImColor_c ImColor_c;
-struct ImColor_c {
-    ImVec4 Value;
-};
-typedef struct ImRect_c ImRect_c;
-struct ImRect_c {
-    ImVec2 Min;
-    ImVec2 Max;
-};
 typedef struct ImTextureRef_c ImTextureRef_c;
 struct ImTextureRef_c {
     ImTextureData* _TexData;
@@ -3858,6 +3849,15 @@ struct ImVec4_c {
     float y;
     float z;
     float w;
+};
+typedef struct ImColor_c ImColor_c;
+struct ImColor_c {
+    ImVec4_c Value;
+};
+typedef struct ImRect_c ImRect_c;
+struct ImRect_c {
+    ImVec2_c Min;
+    ImVec2_c Max;
 };
 #endif
 #ifndef CIMGUI_DEFINE_ENUMS_AND_STRUCTS

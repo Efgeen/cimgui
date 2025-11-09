@@ -1103,22 +1103,53 @@ local function get_nonPOD(FP)
 	FP.structs_and_enums_table.nonPOD = nonPOD
 	return nonPOD
 end
-M.get_nonPOD = get_nonPOD
+local function recur_calc_depth(FP, structs, k,n)
+	local struct = structs[k]
+	local n1 = n
+	for i,field in ipairs(struct) do
+		local typ = field.type:gsub("const ","") 
+		typ = typ:gsub("*","")
+		if FP.nP_used[typ] then
+			n1 = math.max(n1,recur_calc_depth(FP, structs, typ,n+1))
+		end
+	end
+	return n1
+end
 local function gen_structs_c(FP)
 	local structs = FP.structs_and_enums_table.structs
+	--sort nP_used by dependencies and name
+	nP_used_sorted = {}
+	for k,v in pairs(FP.nP_used) do
+		nP_used_sorted[k] = recur_calc_depth(FP, structs, k, 1)
+	end
+	--M.prtable(nP_used_sorted)
+	local npsorted ={}
+	for k,n in pairs(nP_used_sorted) do insert(npsorted,k) end
+	table.sort(npsorted, function(a,b) return (nP_used_sorted[a] < nP_used_sorted[b]) or ((nP_used_sorted[a] == nP_used_sorted[b]) and (a<b)) end)
+	--M.prtable(npsorted)
+	--error"DEUG"
+	----------
 	local tabs = {}
 	local tabs_c = {}
 	--for k,v in pairs(FP.nP_used) do
-	M.table_do_sorted(FP.nP_used, function(k,v)
+	--M.table_do_sorted(FP.nP_used, function(k,v)
+	for _,k in ipairs(npsorted) do
 		insert(tabs,"typedef struct "..k.."_c "..k.."_c;")
 		insert(tabs_c,"typedef struct "..k.."_c "..k..";")
 		insert(tabs,"struct "..k.."_c {")
 		local struct = structs[k]
 		for i,field in ipairs(struct) do
-			insert(tabs,"    "..field.type.." "..field.name..";")
+			local typ = field.type:gsub("const ","") 
+			typ = typ:gsub("*","")
+			if FP.nP_used[typ] then
+				local ftype = field.type:gsub(typ,typ.."_c")
+				insert(tabs,"    "..ftype.." "..field.name..";")
+			else
+				insert(tabs,"    "..field.type.." "..field.name..";")
+			end
 		end
 		insert(tabs,"};")
-	end)
+	end --)
 	if #tabs > 0 then
 		insert(tabs,1,"#ifndef CIMGUI_DEFINE_ENUMS_AND_STRUCTS")
 		insert(tabs,"#endif")
