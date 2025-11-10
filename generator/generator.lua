@@ -286,7 +286,6 @@ local function cimgui_generation(parser)
 	
 
 	local  tdt = parser:generate_templates()
-	--local cstructsstr = "\n//7777estio es outpre\n"..outpre.."\n///////////////tdt\n"..tdt.."\n////////////////////outpost\n"..outpost 
 	local cstructsstr = outpre..tdt..outpost 
     
 	if gdefines.IMGUI_HAS_DOCK then
@@ -307,6 +306,7 @@ local function cimgui_generation(parser)
 	cstructsstr = colapse_defines(cstructsstr, "IMGUI_ENABLE_FREETYPE")
 	
     hstrfile = hstrfile:gsub([[#include "imgui_structs%.h"]],cstructsstr)
+	hstrfile = hstrfile:gsub([[PLACE_STRUCTS_C]],parser:gen_structs_c())
     local cfuncsstr = func_header_generate(parser)
 	cfuncsstr = colapse_defines(cfuncsstr, "IMGUI_ENABLE_FREETYPE")
     hstrfile = hstrfile:gsub([[#include "auto_funcs%.h"]],cfuncsstr)

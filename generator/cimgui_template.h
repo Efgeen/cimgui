@@ -49,6 +49,7 @@ struct SDL_Window;
 typedef union SDL_Event SDL_Event;
 #endif // CIMGUI_DEFINE_ENUMS_AND_STRUCTS
 
+PLACE_STRUCTS_C
 
 #include "auto_funcs.h"
 

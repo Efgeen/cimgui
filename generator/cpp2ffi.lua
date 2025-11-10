@@ -1104,12 +1104,13 @@ local function get_nonPOD(FP)
 	return nonPOD
 end
 local function recur_calc_depth(FP, structs, k,n)
+	--print("recur_calc_depth",k,n)
 	local struct = structs[k]
 	local n1 = n
 	for i,field in ipairs(struct) do
 		local typ = field.type:gsub("const ","") 
 		typ = typ:gsub("*","")
-		if FP.nP_used[typ] then
+		if k~=typ and FP.nP_used[typ] then
 			n1 = math.max(n1,recur_calc_depth(FP, structs, typ,n+1))
 		end
 	end
@@ -1163,12 +1164,16 @@ local function gen_structs_c(FP)
 	return table.concat(tabs_c,"\n").."\n"..table.concat(tabs,"\n")
 	--return table.concat(tabs,"\n")
 end
-local function gen_field_conversion(tab, struct, FP, prefix)
+local function gen_field_conversion(tab, struct, FP, to,prefix)
 	prefix = prefix or ""
 	local structs = FP.structs_and_enums_table.structs
 	for i,field in ipairs(struct) do
+		local ftype = field.type:gsub("*","")
 		if FP.nP_used[field.type] then
-			gen_field_conversion(tab, structs[field.type],FP, prefix..field.name..".")
+			gen_field_conversion(tab, structs[field.type],FP, to,prefix..field.name..".")
+		elseif FP.nP_used[ftype] then
+			local ftypec = field.type:gsub(ftype,not to and (ftype.."_c") or ftype)
+			insert(tab, "    dest."..prefix..field.name.." = reinterpret_cast<"..ftypec..">(src."..prefix..field.name..");")
 		else
 			insert(tab,"    dest."..prefix..field.name.." = src."..prefix..field.name..";")
 		end
@@ -1183,14 +1188,14 @@ local function genConversions(FP)
 		insert(convers,"{")
 		insert(convers,"    "..k.." dest;")
 		local struct = structs[k]
-		gen_field_conversion(convers,struct,FP)
+		gen_field_conversion(convers,struct,FP, true)
 		insert(convers,"    return dest;")
 		insert(convers,"}")
 		insert(convers,"static inline "..k.."_c ConvertFromCPP_"..k.."(const "..k.."& src)")
 		insert(convers,"{")
 		insert(convers,"    "..k.."_c dest;")
 		local struct = structs[k]
-		gen_field_conversion(convers,struct,FP)
+		gen_field_conversion(convers,struct,FP,  false)
 		insert(convers,"    return dest;")
 		insert(convers,"}")
 	end)
@@ -3128,8 +3133,8 @@ local function func_header_generate(FP)
     --outtabf = M.header_subs_nonPOD(FP,outtabf)
     local cfuncsstr = table.concat(outtab)..outtabf
     cfuncsstr = cfuncsstr:gsub("\n+","\n") --several empty lines to one empty line
-	local structs_c = FP:gen_structs_c()
-    return structs_c..cfuncsstr
+
+    return cfuncsstr
 end
 
 M.func_header_generate = func_header_generate
