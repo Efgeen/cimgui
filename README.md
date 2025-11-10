@@ -17,6 +17,10 @@ Notes:
 * All naming is algorithmic except for those names that were coded in cimgui_overloads table (https://github.com/cimgui/cimgui/blob/master/generator/generator.lua#L60). In the official version this table is empty.
 * Current overloaded function names can be found in (https://github.com/cimgui/cimgui/blob/master/generator/output/overloads.txt)
 
+#changes
+
+* 10/11/2025: Functions returning and taking as argument no POD structs is now doing a conversion internally to allow ARM64 compilation.
+
 # compilation
 
 * clone 
@@ -60,7 +64,8 @@ Notes:
   * retref : is set if original return type is a reference. (will be a pointer in cimgui)
   * argsT : an array of collections (each one with type: argument type and name: the argument name, when the argument is a function pointer also ret: return type and signature: the function signature)
   * args : a string of argsT concatenated and separated by commas
-  * call_args : a string with the argument names separated by commas for calling imgui function
+  * call_args_old : a string with the argument names separated by commas for calling imgui function
+  * call_args : call_args_old with conversion added.
   * defaults : a collection in which key is argument name and value is the default value.
   * manual : will be true if this function is hand-written (not generated)
   * skipped : will be true if this function is not generated (and not hand-written)
@@ -70,7 +75,7 @@ Notes:
   * realdestructor : is set if the function is a destructor for a class
   * templated : is set if the function belongs to a templated class (ImVector)
   * templatedgen: is set if the function belongs to a struct generated from template (ImVector_ImWchar)
-  * nonUDT : if present the original function was returning a user defined type so that signature has been changed to accept a pointer to the UDT as first argument.
+  * nonUDT : if present the original function was returning a user defined type.
   * location : name of the header file and linenumber this function comes from. (imgui:000, internal:123, imgui_impl_xxx:123)
   * is_static_function : is setted when it is an struct static function.
 ### structs_and_enums description
@@ -91,7 +96,6 @@ Notes:
 * use whatever method is in ImGui c++ namespace in the original [imgui.h](https://github.com/ocornut/imgui/blob/master/imgui.h) by prepending `ig`
 * methods have the same parameter list and return values (where possible)
 * functions that belong to a struct have an extra first argument with a pointer to the struct.
-* where a function returns UDT (user defined type) by value some compilers complain so the function is generated accepting a pointer to the UDT type as the first argument (or second if belongs to a struct).
 * constructors return pointer to struct and has been named Struct_name_Struct_name
 # usage with backends
 
