@@ -1105,7 +1105,7 @@ local function get_nonPOD(FP)
 end
 local function recur_calc_depth(FP, structs, k,n)
 	--print("recur_calc_depth",k,n)
-	local struct = structs[k]
+	local struct = structs[k] or FP.cimgui_inherited.structs[k]
 	local n1 = n
 	for i,field in ipairs(struct) do
 		local typ = field.type:gsub("const ","") 
@@ -1118,6 +1118,7 @@ local function recur_calc_depth(FP, structs, k,n)
 end
 local function gen_structs_c(FP)
 	local structs = FP.structs_and_enums_table.structs
+	local nonPOD = FP.structs_and_enums_table.nonPOD
 	--sort nP_used by dependencies and name
 	nP_used_sorted = {}
 	for k,v in pairs(FP.nP_used) do
@@ -1135,10 +1136,11 @@ local function gen_structs_c(FP)
 	--for k,v in pairs(FP.nP_used) do
 	--M.table_do_sorted(FP.nP_used, function(k,v)
 	for _,k in ipairs(npsorted) do
+		if nonPOD[k]~="inherited" then
 		insert(tabs,"typedef struct "..k.."_c "..k.."_c;")
 		insert(tabs_c,"typedef struct "..k.."_c "..k..";")
 		insert(tabs,"struct "..k.."_c {")
-		local struct = structs[k]
+		local struct = structs[k] or FP.cimgui_inherited.structs[k]
 		for i,field in ipairs(struct) do
 			local typ = field.type:gsub("const ","") 
 			typ = typ:gsub("*","")
@@ -1150,6 +1152,7 @@ local function gen_structs_c(FP)
 			end
 		end
 		insert(tabs,"};")
+		end
 	end --)
 	if #tabs > 0 then
 		insert(tabs,1,"#ifndef CIMGUI_DEFINE_ENUMS_AND_STRUCTS")
@@ -1164,13 +1167,14 @@ local function gen_structs_c(FP)
 	return table.concat(tabs_c,"\n").."\n"..table.concat(tabs,"\n")
 	--return table.concat(tabs,"\n")
 end
-local function gen_field_conversion(tab, struct, FP, to,prefix)
+local function gen_field_conversion(tab, struct,structs, FP, to,prefix)
+	--M.prtable("gen_field_conversion",struct)
 	prefix = prefix or ""
-	local structs = FP.structs_and_enums_table.structs
+	--local structs = FP.structs_and_enums_table.structs
 	for i,field in ipairs(struct) do
 		local ftype = field.type:gsub("*","")
 		if FP.nP_used[field.type] then
-			gen_field_conversion(tab, structs[field.type],FP, to,prefix..field.name..".")
+			gen_field_conversion(tab, structs[field.type],structs,FP, to,prefix..field.name..".")
 		elseif FP.nP_used[ftype] then
 			local ftypec = field.type:gsub(ftype,not to and (ftype.."_c") or ftype)
 			insert(tab, "    dest."..prefix..field.name.." = reinterpret_cast<"..ftypec..">(src."..prefix..field.name..");")
@@ -1181,21 +1185,32 @@ local function gen_field_conversion(tab, struct, FP, to,prefix)
 end
 local function genConversions(FP)
 	local structs = FP.structs_and_enums_table.structs
+	if FP.cimgui_inherited then
+		structs = {}
+		for k,v in pairs(FP.cimgui_inherited.structs) do
+			assert(not structs[k])
+			structs[k] = v
+		end
+		for k,v in pairs(FP.structs_and_enums_table.structs) do
+			structs[k] = v
+		end
+	end
 	local convers = {}
 	--for k,v in pairs(FP.nP_used) do
 	M.table_do_sorted(FP.nP_used, function(k,v)
+		--print("genConversions",k)
 		insert(convers,"static inline "..k.." ConvertToCPP_"..k.."(const "..k.."_c& src)")
 		insert(convers,"{")
 		insert(convers,"    "..k.." dest;")
 		local struct = structs[k]
-		gen_field_conversion(convers,struct,FP, true)
+		gen_field_conversion(convers,struct,structs,FP, true)
 		insert(convers,"    return dest;")
 		insert(convers,"}")
 		insert(convers,"static inline "..k.."_c ConvertFromCPP_"..k.."(const "..k.."& src)")
 		insert(convers,"{")
 		insert(convers,"    "..k.."_c dest;")
 		local struct = structs[k]
-		gen_field_conversion(convers,struct,FP,  false)
+		gen_field_conversion(convers,struct,structs,FP,  false)
 		insert(convers,"    return dest;")
 		insert(convers,"}")
 	end)
@@ -1205,6 +1220,11 @@ end
 local function get_nonPODused(FP)
 	--print("get_nonPODused-----------------------------")
 	local nonPOD = FP.structs_and_enums_table.nonPOD
+	if FP.cimgui_inherited then
+		for k,v in pairs(FP.cimgui_inherited.nonPOD) do
+			nonPOD[k] = "inherited"
+		end
+	end
 	--M.prtable(nonPOD)
 	local typeargs = {}
 	local typeargs_ret = {}
@@ -1232,6 +1252,7 @@ local function get_nonPODused(FP)
 			end
 		end
 	end
+	--M.prtable(nonPOD)
 	local all_type_nP = {}
 	for k,v in pairs(typeargs) do 
 		local k2 = k:gsub("const ","")
@@ -1242,6 +1263,7 @@ local function get_nonPODused(FP)
 		all_type_nP[k2] = true
 	end
 	FP.nP_used = all_type_nP
+	--M.prtable("FP.nP_used",FP.nP_used)
 	FP.nP_args = typeargs
 	FP.nP_ret = typeargs_ret
 	--genConversions(FP)
