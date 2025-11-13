@@ -186,7 +186,7 @@ local function get_defines(t)
     end
     pipe:close()
     --require"anima.utils"
-    --prtable(defines)
+    --cpp2ffi.prtable(defines)
 	assert(next(defines), table.concat(compiler_output, "\n"))
     local ret = {}
     for i,v in ipairs(t) do
