@@ -680,7 +680,7 @@ CIMGUI_API void igTextColored(const ImVec4_c col,const char* fmt,...)
 #ifdef CIMGUI_VARGS0
 CIMGUI_API void igTextColored0(const ImVec4_c col,const char* fmt)
 {
-    return igTextColored(ConvertToCPP_ImVec4(col),fmt);
+    return igTextColored(col,fmt);
 }
 #endif
 CIMGUI_API void igTextColoredV(const ImVec4_c col,const char* fmt,va_list args)

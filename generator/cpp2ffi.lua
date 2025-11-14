@@ -2944,7 +2944,7 @@ local function ImGui_f_implementation(def)
 		table.insert(outtab, "#ifdef CIMGUI_VARGS0\n")
 		table.insert(outtab, "CIMGUI_API".." "..def.ret.." "..def.ov_cimguiname.."0"..paramListWithoutDots(def.args).."\n")
 		table.insert(outtab, "{\n")
-		table.insert(outtab, "    return "..def.ov_cimguiname..paramListWithoutDots(def.call_args)..";\n")
+		table.insert(outtab, "    return "..def.ov_cimguiname..paramListWithoutDots(def.call_args_old)..";\n")
 		table.insert(outtab, "}\n")
 		table.insert(outtab, "#endif\n")
     elseif def.nonUDT then
