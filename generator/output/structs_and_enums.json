@@ -5656,6 +5656,14 @@
     "ImVec4": true,
     "ImVector": true
   },
+  "nonPOD_used": {
+    "ImColor": true,
+    "ImRect": true,
+    "ImTextureRef": true,
+    "ImVec2": true,
+    "ImVec2i": true,
+    "ImVec4": true
+  },
   "structs": {
     "ImBitVector": [
       {
