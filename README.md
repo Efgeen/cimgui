@@ -17,9 +17,9 @@ Notes:
 * All naming is algorithmic except for those names that were coded in cimgui_overloads table (https://github.com/cimgui/cimgui/blob/master/generator/generator.lua#L60). In the official version this table is empty.
 * Current overloaded function names can be found in (https://github.com/cimgui/cimgui/blob/master/generator/output/overloads.txt)
 
-#changes
+# changes
 
-* 10/11/2025: Functions returning and taking as argument no POD structs is now doing a conversion internally to allow ARM64 compilation.
+* 10/11/2025: Functions returning and taking as argument no POD structs is now doing a conversion internally to allow ARM64 compilation. In structs_and_enums.json under key nonPOD_used we get a collection where keys are types non usable from C that appear as returns or args to funtions. value can be true or "inherited" when type comes from cimgui and appears in a cimgui extension (cimplot ...). The C names have suffix _c.
 
 # compilation
 
@@ -91,6 +91,7 @@ Notes:
     * size : the number of array elements (when it is an array)
     * bitfield : the bitfield width (in case it is a bitfield)
   * under key locations we get the locations collection in which each key is the enum tagname or the struct name and the value is the name of the header file and line number this comes from.
+  * under key nonPOD_used we get a collection where keys are types non usable from C that appear as returns or args to funtions. value can be true or "inherited" when type comes from cimgui and appears in a cimgui extension (cimplot ...). The C names have suffix _c.
 # usage
 
 * use whatever method is in ImGui c++ namespace in the original [imgui.h](https://github.com/ocornut/imgui/blob/master/imgui.h) by prepending `ig`
