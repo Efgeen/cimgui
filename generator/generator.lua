@@ -437,6 +437,7 @@ local structs_and_enums_table = parser1.structs_and_enums_table
 structs_and_enums_table.templated_structs = parser1.templated_structs
 structs_and_enums_table.typenames = parser1.typenames
 structs_and_enums_table.templates_done = parser1.templates_done
+--structs_and_enums_table.nonPOD_used = parser1.nP_used
 
 save_data("./output/structs_and_enums.lua",serializeTableF(structs_and_enums_table))
 save_data("./output/typedefs_dict.lua",serializeTableF(parser1.typedefs_dict))

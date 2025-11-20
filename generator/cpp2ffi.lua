@@ -1256,14 +1256,15 @@ local function get_nonPODused(FP)
 	local all_type_nP = {}
 	for k,v in pairs(typeargs) do 
 		local k2 = k:gsub("const ","")
-		all_type_nP[k2] = true
+		all_type_nP[k2] = nonPOD[k2]--true
 	end
 	for k,v in pairs(typeargs_ret) do 
 		local k2 = k:gsub("const ","")
-		all_type_nP[k2] = true
+		all_type_nP[k2] = nonPOD[k2]--true
 	end
 	FP.nP_used = all_type_nP
 	--M.prtable("FP.nP_used",FP.nP_used)
+	FP.structs_and_enums_table.nonPOD_used = FP.nP_used
 	FP.nP_args = typeargs
 	FP.nP_ret = typeargs_ret
 	--genConversions(FP)
