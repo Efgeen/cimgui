@@ -529,7 +529,7 @@ local function name_overloadsAlgo(v)
             for i=1,#v do
                 if not done[i] then
                     bb[i] = bb[i]..(aa[i][l]=="nil" and "" or aa[i][l])
-					cc[i][l] = aa[i][l]
+					table.insert(cc[i], (aa[i][l]=="nil" and "" or aa[i][l]))
                 end
             end
         end
@@ -544,7 +544,7 @@ local function name_overloadsAlgo(v)
 		end
     end
 	--avoid empty postfix which will be reserved to generic
-	for i,v in ipairs(bb) do if v=="" then bb[i]="Nil" end end
+	for i,v in ipairs(bb) do if v=="" then bb[i]="Nil"; table.insert(cc[i],"Nil") end end
     return aa,bb,cc
 end
 M.name_overloadsAlgo = name_overloadsAlgo
@@ -560,15 +560,26 @@ local function typetoStr(typ)
     typ = typ:gsub("const%s","")--"c")
     typ = typ:gsub("%s+","_")
     typ = typ:gsub("charPtr","Str")
-    typ = typ:gsub("int","Int")
+    typ = typ:gsub("^int","Int")
+	typ = typ:gsub("^nil","Nil")
     typ = typ:gsub("bool","Bool")
     typ = typ:gsub("float","Float")
-    typ = typ:gsub("uInt","Uint")
+    typ = typ:gsub("u[Ii]nt","Uint")
     typ = typ:gsub("ImGui","")
     --typ = typ:gsub("ImStr","STR")
     typ = typ:gsub("Im","")
     typ = typ:gsub("[<>]","")
-    return "_"..typ
+	return typ
+   -- return "_"..typ
+end
+local function typetoStrpat(pat,post,typsc)
+	local str = ""
+	for i,v in ipairs(pat) do
+		str = str..typetoStr(v)
+	end
+	--local str2 = typetoStr(post)
+	--if str~=str2 then print(1,str,2,str2);M.prtable(typesc,post,pat);error"DEBUG" end
+	return str
 end
 --used to clean signature in function ptr argument
 local function clean_names_from_signature(self,signat)
@@ -2445,7 +2456,7 @@ function M.Parser()
                 --print(k,#v)
                 table.insert(strt,string.format("%s\t%d",k,#v))
                 local typesc,post,pat = name_overloadsAlgo(v)
-				-- if k=="igImLerp" then
+				-- if k=="ImPlot_PlotLine" then
 				-- print"----------------------"
 				-- M.prtable(v)
 				-- M.prtable(typesc)
@@ -2455,7 +2466,7 @@ function M.Parser()
 				-- end
                 for i,t in ipairs(v) do
                     --take overloaded name from manual table or algorythm
-                    t.ov_cimguiname = self.getCname_overload(t.stname,t.funcname,t.signature,t.namespace) or k..typetoStr(post[i])
+                    t.ov_cimguiname = self.getCname_overload(t.stname,t.funcname,t.signature,t.namespace) or k.."_"..typetoStrpat(pat[i],post[i],typesc)
 					--check ...
 					if( t.ov_cimguiname:match"%.%.%.") then
 						print("... in ov",t.ov_cimguiname)
