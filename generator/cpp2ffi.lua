@@ -2046,6 +2046,10 @@ function M.Parser()
 							print("--skip enum forward declaration:",it2)
 							it2 = ""
 						end
+						if it2:match"=%s*ImVec" then
+							print("--skip = vardef declaration:",it2)
+							it2 = ""
+						end
 					end
 					--table.insert(outtabpre,it2)
 					--table.insert(outtab,it2)
