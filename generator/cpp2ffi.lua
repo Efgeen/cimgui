@@ -2065,7 +2065,10 @@ function M.Parser()
 							print("--skip enum forward declaration:",it2)
 							it2 = ""
 						end
-						if it2:match"=%s*ImVec" then
+						--only vardef assign with number
+						local assig = it2:match("static const [^=]*=([^;]*);")
+						--print("it2",it2,"assig",assig,tonumber(assig))
+						if assig and not tonumber(assig) then
 							print("--skip = vardef declaration:",it2)
 							it2 = ""
 						end
