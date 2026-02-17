@@ -76,6 +76,25 @@ function M.prtable(...)
 		print("\n")
 	end
 end
+local function deepcopy(object)
+    local lookup_table = {}
+    local function _copy(object)
+		--assert(object~=REST)
+        if type(object) ~= "table" then
+            return object
+        elseif lookup_table[object] then
+            return lookup_table[object]
+        end
+        local new_table = {}
+        lookup_table[object] = new_table
+        for index, value in pairs(object) do
+            new_table[_copy(index)] = _copy(value)
+        end
+        return setmetatable(new_table, getmetatable(object))
+    end
+    return _copy(object)
+end
+M.deepcopy = deepcopy
 local function str_split(str, pat)
 	local t = {} 
 	local fpat = "(.-)" .. pat
@@ -3025,7 +3044,7 @@ local function func_implementation(FP)
         assert(def)
 		local custom
 		if FP.custom_implementation then
-			custom = FP.custom_implementation(outtab, def)
+			custom = FP.custom_implementation(outtab, def, FP)
 		end
         local manual = FP.get_manuals(def)
         if not custom and not manual and not def.templated and not FP.get_skipped(def) then 
