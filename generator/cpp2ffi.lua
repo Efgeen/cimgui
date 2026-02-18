@@ -76,6 +76,25 @@ function M.prtable(...)
 		print("\n")
 	end
 end
+local function deepcopy(object)
+    local lookup_table = {}
+    local function _copy(object)
+		--assert(object~=REST)
+        if type(object) ~= "table" then
+            return object
+        elseif lookup_table[object] then
+            return lookup_table[object]
+        end
+        local new_table = {}
+        lookup_table[object] = new_table
+        for index, value in pairs(object) do
+            new_table[_copy(index)] = _copy(value)
+        end
+        return setmetatable(new_table, getmetatable(object))
+    end
+    return _copy(object)
+end
+M.deepcopy = deepcopy
 local function str_split(str, pat)
 	local t = {} 
 	local fpat = "(.-)" .. pat
@@ -529,7 +548,7 @@ local function name_overloadsAlgo(v)
             for i=1,#v do
                 if not done[i] then
                     bb[i] = bb[i]..(aa[i][l]=="nil" and "" or aa[i][l])
-					cc[i][l] = aa[i][l]
+					table.insert(cc[i], (aa[i][l]=="nil" and "" or aa[i][l]))
                 end
             end
         end
@@ -544,7 +563,7 @@ local function name_overloadsAlgo(v)
 		end
     end
 	--avoid empty postfix which will be reserved to generic
-	for i,v in ipairs(bb) do if v=="" then bb[i]="Nil" end end
+	for i,v in ipairs(bb) do if v=="" then bb[i]="Nil"; table.insert(cc[i],"Nil") end end
     return aa,bb,cc
 end
 M.name_overloadsAlgo = name_overloadsAlgo
@@ -560,15 +579,26 @@ local function typetoStr(typ)
     typ = typ:gsub("const%s","")--"c")
     typ = typ:gsub("%s+","_")
     typ = typ:gsub("charPtr","Str")
-    typ = typ:gsub("int","Int")
+    typ = typ:gsub("^int","Int")
+	typ = typ:gsub("^nil","Nil")
     typ = typ:gsub("bool","Bool")
     typ = typ:gsub("float","Float")
-    typ = typ:gsub("uInt","Uint")
+    typ = typ:gsub("u[Ii]nt","Uint")
     typ = typ:gsub("ImGui","")
     --typ = typ:gsub("ImStr","STR")
     typ = typ:gsub("Im","")
     typ = typ:gsub("[<>]","")
-    return "_"..typ
+	return typ
+   -- return "_"..typ
+end
+local function typetoStrpat(pat,post,typsc)
+	local str = ""
+	for i,v in ipairs(pat) do
+		str = str..typetoStr(v)
+	end
+	--local str2 = typetoStr(post)
+	--if str~=str2 then print(1,str,2,str2);M.prtable(typesc,post,pat);error"DEBUG" end
+	return str
 end
 --used to clean signature in function ptr argument
 local function clean_names_from_signature(self,signat)
@@ -2035,6 +2065,13 @@ function M.Parser()
 							print("--skip enum forward declaration:",it2)
 							it2 = ""
 						end
+						--only vardef assign with number
+						local assig = it2:match("static const [^=]*=([^;]*);")
+						--print("it2",it2,"assig",assig,tonumber(assig))
+						if assig and not tonumber(assig) then
+							print("--skip = vardef declaration:",it2)
+							it2 = ""
+						end
 					end
 					--table.insert(outtabpre,it2)
 					--table.insert(outtab,it2)
@@ -2445,7 +2482,7 @@ function M.Parser()
                 --print(k,#v)
                 table.insert(strt,string.format("%s\t%d",k,#v))
                 local typesc,post,pat = name_overloadsAlgo(v)
-				-- if k=="igImLerp" then
+				-- if k=="ImPlot_PlotLine" then
 				-- print"----------------------"
 				-- M.prtable(v)
 				-- M.prtable(typesc)
@@ -2455,7 +2492,7 @@ function M.Parser()
 				-- end
                 for i,t in ipairs(v) do
                     --take overloaded name from manual table or algorythm
-                    t.ov_cimguiname = self.getCname_overload(t.stname,t.funcname,t.signature,t.namespace) or k..typetoStr(post[i])
+                    t.ov_cimguiname = self.getCname_overload(t.stname,t.funcname,t.signature,t.namespace) or k.."_"..typetoStrpat(pat[i],post[i],typesc)
 					--check ...
 					if( t.ov_cimguiname:match"%.%.%.") then
 						print("... in ov",t.ov_cimguiname)
@@ -3010,7 +3047,7 @@ local function func_implementation(FP)
         assert(def)
 		local custom
 		if FP.custom_implementation then
-			custom = FP.custom_implementation(outtab, def)
+			custom = FP.custom_implementation(outtab, def, FP)
 		end
         local manual = FP.get_manuals(def)
         if not custom and not manual and not def.templated and not FP.get_skipped(def) then 
