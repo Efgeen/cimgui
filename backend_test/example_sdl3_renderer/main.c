@@ -48,6 +48,7 @@ int main() {
 
     // Setup Platform/Renderer backends
     ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
+    ImGui_ImplSDLRenderer3_Init(renderer);
   // finish loading data
 
     // Our state
@@ -87,6 +88,9 @@ int main() {
         }
 
         // Start the Dear ImGui frame
+        SDL_SetRenderDrawColorFloat(renderer, clear_color.x, clear_color.y, clear_color.z, clear_color.w);
+        SDL_RenderClear(renderer);
+        ImGui_ImplSDLRenderer3_NewFrame();
         ImGui_ImplSDL3_NewFrame();
         igNewFrame();
 
@@ -136,11 +140,14 @@ int main() {
         igRender();
         ImDrawData* draw_data = igGetDrawData();
         const bool is_minimized = (draw_data->DisplaySize.x <= 0.0f || draw_data->DisplaySize.y <= 0.0f);
+        ImGui_ImplSDLRenderer3_RenderDrawData(draw_data, renderer);
+        SDL_RenderPresent(renderer);
     }
 
     // Cleanup
     // [If using SDL_MAIN_USE_CALLBACKS: all code below would likely be your SDL_AppQuit() function]
     ImGui_ImplSDL3_Shutdown();
+    ImGui_ImplSDLRenderer3_Shutdown();
     igDestroyContext(NULL);
 
     SDL_DestroyRenderer(renderer);
