@@ -2072,6 +2072,10 @@ function M.Parser()
 							print("--skip = vardef declaration:",it2)
 							it2 = ""
 						end
+						if it2:match("%s*extern") then
+							print("--skip extern vardef declaration:",it2)
+							it2 = ""
+						end
 					end
 					--table.insert(outtabpre,it2)
 					--table.insert(outtab,it2)
