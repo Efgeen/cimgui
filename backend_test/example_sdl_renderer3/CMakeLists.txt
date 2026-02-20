@@ -6,8 +6,11 @@ set(CMAKE_C_STANDARD 11)
 include(FetchContent)
 
 FetchContent_Declare(
-	sdl3
-	URL https://github.com/libsdl-org/SDL/releases/download/release-3.2.8/SDL3-3.2.8.tar.gz
+        sdl3
+        GIT_REPOSITORY https://github.com/libsdl-org/SDL.git
+        GIT_TAG release-3.4.0
+        #GIT_SHALLOW TRUE
+        GIT_PROGRESS TRUE
 )
 
 set(SDL_TEST_LIBRARY OFF CACHE BOOL "" FORCE)

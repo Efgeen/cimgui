@@ -8,15 +8,16 @@
 #include <cimgui.h>
 #include <cimgui_impl.h>
 
-
 #define igGetIO igGetIO_Nil
 
 int main() {
+    // Setup SDL library
     if (!SDL_Init(SDL_INIT_VIDEO | SDL_INIT_GAMEPAD)) {
       fprintf(stderr, "Failed to init video! %s", SDL_GetError());
       return 1;
     };
-    
+   
+    // Setup window and renderer
     float main_scale = SDL_GetDisplayContentScale(SDL_GetPrimaryDisplay());
     SDL_WindowFlags window_flags = SDL_WINDOW_RESIZABLE | SDL_WINDOW_HIDDEN | SDL_WINDOW_HIGH_PIXEL_DENSITY;
     SDL_Window* window = NULL;
@@ -29,19 +30,19 @@ int main() {
     SDL_SetWindowPosition(window, SDL_WINDOWPOS_CENTERED, SDL_WINDOWPOS_CENTERED);
     SDL_ShowWindow(window);
 
-  // Setup Dear ImGui context
-    //IMGUI_CHECKVERSION();
+    // Setup Dear ImGui context
     igCreateContext(NULL);
     ImGuiIO* io = igGetIO(); (void)io;
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;     // Enable Keyboard Controls
-    io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;      // Enable Gamepad Controls
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
+    io->ConfigFlags |= ImGuiConfigFlags_NavEnableGamepad;
 
     // Setup Dear ImGui style
     igStyleColorsDark(NULL);
     //igStyleColorsLight(NULL);
+  
     // Setup scaling
     ImGuiStyle* style = igGetStyle();
-    ImGuiStyle_ScaleAllSizes(style, main_scale);        // Bake a fixed style scale. (until we have a solution for dynamic style scaling, changing this requires resetting Style + calling this again)
+    ImGuiStyle_ScaleAllSizes(style, main_scale);        
     style->FontScaleDpi = main_scale;        // Set initial font scale. (using io.ConfigDpiScaleFonts=true makes this unnecessary. We leave both here for documentation purpose)
     io->ConfigDpiScaleFonts = true;          // [Experimental] Automatically overwrite style.FontScaleDpi in Begin() when Monitor DPI changes. This will scale fonts but _NOT_ scale sizes/padding for now.
     io->ConfigDpiScaleViewports = true;      // [Experimental] Scale Dear ImGui and Platform Windows when Monitor DPI changes.
@@ -49,7 +50,6 @@ int main() {
     // Setup Platform/Renderer backends
     ImGui_ImplSDL3_InitForSDLRenderer(window, renderer);
     ImGui_ImplSDLRenderer3_Init(renderer);
-  // finish loading data
 
     // Our state
     bool show_demo_window = true;
@@ -87,7 +87,7 @@ int main() {
             continue;
         }
 
-        // Start the Dear ImGui frame
+        // Setup Dear ImGui frame
         SDL_SetRenderDrawColorFloat(renderer, clear_color.x, clear_color.y, clear_color.z, clear_color.w);
         SDL_RenderClear(renderer);
         ImGui_ImplSDLRenderer3_NewFrame();
@@ -103,19 +103,19 @@ int main() {
             static float f = 0.0f;
             static int counter = 0;
 
-            igBegin("Hello, world!", NULL, 0);                          // Create a window called "Hello, world!" and append into it.
+            igBegin("Hello, world!", NULL, 0);                    // Create a window called "Hello, world!" and append into it.
 
-            igText("This is some useful text.");               // Display some text (you can use a format strings too)
-            igCheckbox("Demo Window", &show_demo_window);      // Edit bools storing our window open/close state
+            igText("This is some useful text.");                  // Display some text (you can use a format strings too)
+            igCheckbox("Demo Window", &show_demo_window);         // Edit bools storing our window open/close state
             igCheckbox("Another Window", &show_another_window);
 
-            igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);            // Edit 1 float using a slider from 0.0f to 1.0f
+            igSliderFloat("float", &f, 0.0f, 1.0f, "%.3f", 0);    // Edit 1 float using a slider from 0.0f to 1.0f
             igColorEdit4("clear color", (float*)&clear_color, 0); // Edit 3 floats representing a color
 
             ImVec2 buttonSize;
             buttonSize.x = 0;
             buttonSize.y = 0;
-            if (igButton("Button", buttonSize))                            // Buttons return true when clicked (most widgets return true when edited/activated)
+            if (igButton("Button", buttonSize))                   // Buttons return true when clicked (most widgets return true when edited/activated)
                 counter++;
             igSameLine(0.0f, -1.0f);
             igText("counter = %d", counter);
