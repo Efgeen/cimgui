@@ -2363,6 +2363,15 @@ function M.Parser()
 							print(it.item)
 						end
 					end
+				elseif it.re_name == "vardef_re" then
+					local it2 = it.item:gsub("constexpr","static const")
+					if it2:match"static const" then
+						local name, assig = it2:match("static const %s*.+%s+([%w_]+)%s*=%s*([^;]*);")
+						--print(it2,name,assig)
+						if name and assig then
+							self.constants[name] = assig
+						end
+					end
 				end
 			elseif it.re_name == "enum_re" then
 				enums_for_table(it, outtab, enumsordered)
