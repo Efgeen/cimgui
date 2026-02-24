@@ -1624,6 +1624,7 @@ function M.Parser()
 		--try to guess a compiler error
 		assert(not errstr:match" error")
 		os.remove(errfile)
+		self.constants = defines
 		return defines
 	end
 	function par:do_parse()
@@ -2917,7 +2918,8 @@ local function location(file,locpathT,defines,COMPILER,keepemptylines)
 					if name and val then
 						--while defines[val] do val = defines[val] end
 						--if val:match(number_re) or val:match(hex_re) then
-							table.insert(defines,{name , val})
+							--table.insert(defines,{name , val})
+							defines[name] = val
 						--end
 					end
                 end
