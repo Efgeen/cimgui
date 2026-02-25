@@ -1553,6 +1553,36 @@ local function printItems(items)
 		printItemsKind(items,v)
 	end
 end
+
+-------------------------------json saving
+--avoid mixed tables (with string and integer keys)
+local function json_prepare(defs)
+    --delete signatures in function
+    for k,def in pairs(defs) do
+        for k2,v in pairs(def) do
+            if type(k2)=="string" then
+                def[k2] = nil
+            end
+        end
+    end
+    return defs
+end
+
+
+local function save_output(self)
+	save_data("./output/overloads.txt",self.overloadstxt)
+	save_data("./output/definitions.lua",M.serializeTableF(self.defsT))
+	save_data("./output/structs_and_enums.lua",M.serializeTableF(self.structs_and_enums_table))
+	save_data("./output/typedefs_dict.lua",M.serializeTableF(self.typedefs_dict))
+	save_data("./output/constants.lua",M.serializeTableF(self.constants))
+	
+	local json = require"json"
+	local json_opts = {dict_on_empty={defaults=true}}
+	save_data("./output/definitions.json",json.encode(json_prepare(self.defsT),json_opts))
+	save_data("./output/structs_and_enums.json",json.encode(self.structs_and_enums_table))
+	save_data("./output/typedefs_dict.json",json.encode(self.typedefs_dict))
+	save_data("./output/constants.json",json.encode(self.constants))
+end
 -------------
 local numerr = 0 --for popen error file
 function M.Parser()
@@ -1573,6 +1603,7 @@ function M.Parser()
 	par.skipped = {}
 	par.UDTs = {}
 	
+	par.save_output = save_output
 	par.genConversors = genConversions
 	par.gen_structs_c = gen_structs_c
 	function par:insert(line,loca)
