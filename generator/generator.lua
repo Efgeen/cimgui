@@ -39,10 +39,10 @@ if FREETYPE_GENERATION then
 end
 
 if COMPILER == "gcc" or COMPILER == "clang" or COMPILER == "zig cc" then
-    CPRE = COMPILER..[[ -E -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS -DIMGUI_API="" -DIMGUI_IMPL_API=""  ]] .. CFLAGS
+    CPRE = COMPILER..[[ -E -dD -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS -DIMGUI_API="" -DIMGUI_IMPL_API=""  ]] .. CFLAGS
     CTEST = COMPILER.." --version"
 elseif COMPILER == "cl" then
-    CPRE = COMPILER..[[ /E /DIMGUI_DISABLE_OBSOLETE_FUNCTIONS /DIMGUI_DEBUG_PARANOID /DIMGUI_API="" /DIMGUI_IMPL_API="" ]] .. CFLAGS
+    CPRE = COMPILER..[[ /E /d1PP /DIMGUI_DISABLE_OBSOLETE_FUNCTIONS /DIMGUI_DEBUG_PARANOID /DIMGUI_API="" /DIMGUI_IMPL_API="" ]] .. CFLAGS
     CTEST = COMPILER
 else
     print("Working without compiler ")
@@ -398,7 +398,7 @@ local function parseImGuiHeader(header,names)
 	parser.custom_function_post = custom_function_post
 	parser.header_text_insert = header_text_insert
 	local defines = parser:take_lines(CPRE..header,names,COMPILER)
-	
+	--cpp2ffi.prtable("defines",defines)
 	return parser
 end
 --generation
@@ -438,14 +438,8 @@ structs_and_enums_table.templated_structs = parser1.templated_structs
 structs_and_enums_table.typenames = parser1.typenames
 structs_and_enums_table.templates_done = parser1.templates_done
 --structs_and_enums_table.nonPOD_used = parser1.nP_used
-
-save_data("./output/structs_and_enums.lua",serializeTableF(structs_and_enums_table))
-save_data("./output/typedefs_dict.lua",serializeTableF(parser1.typedefs_dict))
-
-----------save fundefs in definitions.lua for using in bindings
---DefsByStruct(pFP)
 set_defines(parser1.defsT) 
-save_data("./output/definitions.lua",serializeTableF(parser1.defsT))
+parser1:save_output()
 
 --check every function has ov_cimguiname
 -- for k,v in pairs(parser1.defsT) do
@@ -549,13 +543,6 @@ local function json_prepare(defs)
 end
 ---[[
 local json = require"json"
-save_data("./output/definitions.json",json.encode(json_prepare(parser1.defsT),{dict_on_empty={defaults=true}}))
---delete extra info for json
---structs_and_enums_table.templated_structs = nil
---structs_and_enums_table.typenames = nil
---structs_and_enums_table.templates_done = nil
-save_data("./output/structs_and_enums.json",json.encode(structs_and_enums_table))
-save_data("./output/typedefs_dict.json",json.encode(parser1.typedefs_dict))
 if parser2 then
     save_data("./output/impl_definitions.json",json.encode(json_prepare(parser2.defsT),{dict_on_empty={defaults=true}}))
 end

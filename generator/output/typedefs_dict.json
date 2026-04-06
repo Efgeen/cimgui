@@ -56,6 +56,7 @@
   "ImGuiDebugAllocInfo": "struct ImGuiDebugAllocInfo",
   "ImGuiDebugItemPathQuery": "struct ImGuiDebugItemPathQuery",
   "ImGuiDebugLogFlags": "int",
+  "ImGuiDemoMarkerCallback": "void (*)(const char* file, int line, const char* section);",
   "ImGuiDragDropFlags": "int",
   "ImGuiErrorCallback": "void (*)(ImGuiContext* ctx, void* user_data, const char* msg);",
   "ImGuiErrorRecoveryState": "struct ImGuiErrorRecoveryState",

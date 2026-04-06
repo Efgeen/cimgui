@@ -1553,6 +1553,36 @@ local function printItems(items)
 		printItemsKind(items,v)
 	end
 end
+
+-------------------------------json saving
+--avoid mixed tables (with string and integer keys)
+local function json_prepare(defs)
+    --delete signatures in function
+    for k,def in pairs(defs) do
+        for k2,v in pairs(def) do
+            if type(k2)=="string" then
+                def[k2] = nil
+            end
+        end
+    end
+    return defs
+end
+
+
+local function save_output(self)
+	save_data("./output/overloads.txt",self.overloadstxt)
+	save_data("./output/definitions.lua",M.serializeTableF(self.defsT))
+	save_data("./output/structs_and_enums.lua",M.serializeTableF(self.structs_and_enums_table))
+	save_data("./output/typedefs_dict.lua",M.serializeTableF(self.typedefs_dict))
+	save_data("./output/constants.lua",M.serializeTableF(self.constants))
+	
+	local json = require"json"
+	local json_opts = {dict_on_empty={defaults=true}}
+	save_data("./output/definitions.json",json.encode(json_prepare(self.defsT),json_opts))
+	save_data("./output/structs_and_enums.json",json.encode(self.structs_and_enums_table))
+	save_data("./output/typedefs_dict.json",json.encode(self.typedefs_dict))
+	save_data("./output/constants.json",json.encode(self.constants))
+end
 -------------
 local numerr = 0 --for popen error file
 function M.Parser()
@@ -1573,6 +1603,7 @@ function M.Parser()
 	par.skipped = {}
 	par.UDTs = {}
 	
+	par.save_output = save_output
 	par.genConversors = genConversions
 	par.gen_structs_c = gen_structs_c
 	function par:insert(line,loca)
@@ -1624,6 +1655,7 @@ function M.Parser()
 		--try to guess a compiler error
 		assert(not errstr:match" error")
 		os.remove(errfile)
+		self.constants = defines
 		return defines
 	end
 	function par:do_parse()
@@ -2072,6 +2104,10 @@ function M.Parser()
 							print("--skip = vardef declaration:",it2)
 							it2 = ""
 						end
+						if it2:match("%s*extern") then
+							print("--skip extern vardef declaration:",it2)
+							it2 = ""
+						end
 					end
 					--table.insert(outtabpre,it2)
 					--table.insert(outtab,it2)
@@ -2356,6 +2392,15 @@ function M.Parser()
 						else
 							print("func typedef not found")
 							print(it.item)
+						end
+					end
+				elseif it.re_name == "vardef_re" then
+					local it2 = it.item:gsub("constexpr","static const")
+					if it2:match"static const" then
+						local name, assig = it2:match("static const %s*.+%s+([%w_]+)%s*=%s*([^;]*);")
+						--print(it2,name,assig)
+						if name and assig then
+							self.constants[name] = assig
 						end
 					end
 				end
@@ -2913,7 +2958,8 @@ local function location(file,locpathT,defines,COMPILER,keepemptylines)
 					if name and val then
 						--while defines[val] do val = defines[val] end
 						--if val:match(number_re) or val:match(hex_re) then
-							table.insert(defines,{name , val})
+							--table.insert(defines,{name , val})
+							defines[name] = val
 						--end
 					end
                 end
