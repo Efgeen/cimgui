@@ -5762,6 +5762,7 @@
     "ImVec2i": true,
     "ImVec4": true
   },
+  "opaque_structs": [],
   "structs": {
     "ImBitVector": [
       {

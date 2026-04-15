@@ -826,7 +826,14 @@ local function parseFunction(self,stname,itt,namespace,locat)
 		else
 			reftoptr = nil
 			if ar:match("&") then
-				if ar:match("const") then
+				ar1,defa = ar:match"([^=]+)=([^=]+)"
+				ar1 = ar1 or ar
+				local typ11,name11 = ar1:match("(.+)%s([^%s]+)")
+				typ11 = typ11:gsub("const ","")
+				typ11 = typ11:gsub("&","")
+				if ar:match("const") and not self.opaque_structs[typ11] then
+					--if ar:match"Palette" then print("--w---w--w",ar,typ11,name11) end
+					--print("--w---w--w",ar,cname)
 					ar = ar:gsub("&","")
 				else
 					ar = ar:gsub("&","*")
@@ -1339,12 +1346,10 @@ local function ADDnonUDT(FP)
 	local nonPOD = get_nonPOD(FP)
 	get_nonPODused(FP)
 	for k,defs in pairs(FP.defsT) do
-		for i, def in ipairs(defs) do 
+		for i, def in ipairs(defs) do
+			local skip = nil
 			--ret
 			local rets = (def.ret or ""):gsub("const ","")
-			-- if rets:match"string" then
-				-- M.prtable(def)
-			-- end
 			rets = rets:gsub("*","")
 			if FP.nP_ret[def.ret] then
 				def.conv = (def.ret):gsub("const ","")
@@ -1356,6 +1361,11 @@ local function ADDnonUDT(FP)
 			elseif def.ret=="string" then
 				def.ret = "const char*"
 				def.nonUDT = "string"
+			elseif FP.opaque_structs[rets] then
+				assert(def.ret:match"%*","opaque struct without pointer")
+				def.ret = def.ret:gsub(rets.."%s*%*",rets.."_opq")
+			elseif def.stdret then -- not std::string
+				skip = true
 			end
 			--args
 			local caar,asp
@@ -1378,9 +1388,24 @@ local function ADDnonUDT(FP)
 							local typ3 = v.type:gsub(typ2,typ2.."_c")
 							caar = caar .. "reinterpret_cast<"..v.type..">("..name.."),"
 							asp = asp .. typ3 .." "..v.name..","
+						elseif v.type:match("std::string_view") then
+							caar = caar ..name..","
+							asp = asp .. "const char* "..v.name..","
 						elseif v.type:match("std::string") then
 							caar = caar .. "std::string("..name.."),"
 							asp = asp .. "const char* "..v.name..","
+						elseif v.type:match("std::") then
+							skip = true
+						elseif FP.opaque_structs[typ2] then
+							--assert(v.type:match"%*","opaque struct arg without pointer")
+							if not v.type:match"%*" then
+								M.prtable(def)
+								error"opaque struct arg without pointer"
+							end
+							local newt = v.type:gsub(typ2.."%s*%*",typ2.."_opq")
+							local callname = v.reftoptr and "*"..name or name
+							caar = caar .. callname .. ","
+							asp = asp .. newt.." "..name .. ","
 						else
 							local siz = v.type:match("(%[%d*%])") or ""
 							local typ = v.type:gsub("(%[%d*%])","")
@@ -1396,9 +1421,14 @@ local function ADDnonUDT(FP)
 				caar = "()"
 				asp = "()"
 			end
-			def.call_args_old = def.call_args
-			def.call_args = caar
-			def.args = asp
+			if skip then
+				def.skipped = skip
+				FP.skipped[def.ov_cimguiname] = true
+			else
+				def.call_args_old = def.call_args
+				def.call_args = caar
+				def.args = asp
+			end
 		end
 	end
 end
@@ -1620,6 +1650,7 @@ function M.Parser()
 	par.manuals = {}
 	par.skipped = {}
 	par.UDTs = {}
+	par.opaque_structs = {}
 	
 	par.save_output = save_output
 	par.genConversors = genConversions
@@ -1728,6 +1759,29 @@ function M.Parser()
 			end
 		end
 	end
+	local function derived_check(it)
+		--print("checks",it.name)
+		--expects struct or class
+		assert(it.re_name=="struct_re" or it.re_name=="class_re",it.re_name)
+		local inistruct = clean_spaces(it.item:match("(.-)%b{}"))
+		--clean final:
+		inistruct = inistruct:gsub("%s*final%s*:",":")
+		local stname, derived
+		if inistruct:match":" then
+			stname,derived = inistruct:match"struct%s*([^%s:]+):(.+)"
+			if not stname then stname,derived = inistruct:match"class%s*([^%s:]+):(.+)" end
+			if derived then 
+				derived = derived:match"(%S+)$" 
+			else assert(inistruct:match"private" or inistruct:match"protected",inistruct) end
+		else
+			if it.re_name == "struct_re" then
+				stname = inistruct:match"struct%s(%S+)"
+			elseif it.re_name == "class_re" then
+				stname = inistruct:match"class%s(%S+)"
+			end
+		end
+		return stname, derived
+	end
 	--recursive item parsing
 	function par:parseItemsR2(txt, itparent)
 		local itsarr,its = parseItems(txt,self.linenumdict,itparent)
@@ -1779,11 +1833,29 @@ function M.Parser()
 					end
 					if first_private then
 						for j=first_private,#it.childs do
+							--print("private discards",it.childs[j].re_name,it.childs[j].name)
 							it.childs[j] = nil
 						end
 					end
 				end
 				
+				--create opaque_struct
+				if it.re_name == "struct_re" or it.re_name == "class_re" then
+					local stname,derived = derived_check(it)
+					if derived and derived:match"std::" then
+						print("--make opaque std::derived",it.name,derived)
+						it.opaque_struct = (itparent and itparent.name .."::" or "")..it.name
+					end
+					for j,child in ipairs(it.childs) do
+						if child.re_name == "vardef_re" and child.item:match"std::" then
+							print("--make opaque",it.name,child.item)
+							it.opaque_struct = (itparent and itparent.name .."::" or "")..it.name
+							--cant do that as function is recursive
+							--self.opaque_structs[it.name] = (itparent and itparent.name .."::" or "")..it.name
+							break
+						end
+					end
+				end
 			end
 		end
 		return itsarr
@@ -1865,8 +1937,17 @@ function M.Parser()
 		--save_data("./preparse"..tostring(self):gsub("table: ","")..".c",txt)
 		--]]
 		self.itemsarr = par:parseItemsR2(txt)
-		save_data("./itemsarr.lua",ToStr(self.itemsarr))
+		--save_data("./itemsarr.lua",ToStr(self.itemsarr))
 		itemsarr = self.itemsarr
+		---find opaque_structs
+		self:Listing(itemsarr,function(it) 
+			if it.re_name == "struct_re" or it.re_name == "class_re" then
+				if it.opaque_struct then
+					self.opaque_structs[it.name] = it.opaque_struct
+				end
+			end
+		end)
+		if next(self.opaque_structs) then M.prtable("opaque_structs:",self.opaque_structs) end
 	end
 	
 	function par:printItems()
@@ -1905,6 +1986,7 @@ function M.Parser()
 		end)
 		return table.concat(ttd,"")
 	end
+	
 	function par:clean_structR1(itst,doheader)
 		local stru = itst.item
 		local outtab = {}
@@ -1920,7 +2002,7 @@ function M.Parser()
 		if inistruct:match":" then
 			stname,derived = inistruct:match"struct%s*([^%s:]+):(.+)"
 			if not stname then stname,derived = inistruct:match"class%s*([^%s:]+):(.+)" end
-			print("derived------",inistruct,stname,derived)
+			print("derived------",inistruct,stname,derived, derived:match"(%S+)$")
 			derived = derived:match"(%S+)$"
 		else
 			if itst.re_name == "struct_re" then
@@ -1965,8 +2047,11 @@ function M.Parser()
 			print("clean_struct with empty struc",stname);
 			-- M.prtable(itst)
 			-- if stname=="StbUndoRecord" then error"dddd" end
-			return "" 
+			return ""
 		end --here we avoid empty structs
+		if itst.opaque_struct then
+			return "", stname,nil,nil,""
+		end
 		for j,it in ipairs(itlist) do
 			if (it.re_name == "vardef_re" or it.re_name == "functype_re") then -- or it.re_name == "union_re") then
 				if  not (it.re_name == "vardef_re" and it.item:match"static") then --skip static variables
@@ -1990,14 +2075,17 @@ function M.Parser()
 					end
 					--clean mutable
 					it2 = it2:gsub("mutable","")
-					--clean namespaces
-					it2 = it2:gsub("%w+::","")
+					--clean namespaces but not std::
+					--if not it2:match"std::" then
+						it2 = it2:gsub("%w+::","")
+					--end
 					--clean initializations
 					if it.re_name == "vardef_re" then
 						it2 = it2:gsub("%s*=.+;",";")
 						it2 = it2:gsub("%b{}","")
 					end
 					table.insert(outtab,it2)
+					--print("cleanstruct",it2)
 					table.insert(commtab,{above=it.prevcomments,sameline=it.comments})--it.comments or "")
 				end
 			elseif it.re_name == "union_re" then
@@ -2015,20 +2103,6 @@ function M.Parser()
 				--local decl = it.item:match"%b{}%s*([^%s}{]+)%s*;"
 				local decl = it.item:match"^[^{}]+%b{}%s*([^%s}{]+)%s*;"
 				--local decl1,decl2,decl3 = it.item:match"^([^{}]+%b{})(%s*[^%s}{]+%s*;)(.*)$"
-				--if it.name=="CodePoint" then 
-					--print(it.name,string.format("%q",it.item), decl)
-					--print(it.name, decl)
-					--print(string.format("decl1 is %q \ndecl2 is %q \ndecl3 is %q",decl1,decl2,decl3))
-					--print(decl,#decl,string.byte(decl))
-					--print(it.item:find(string.char(39)),#it.item)
-					-- local first,endd = it.item:find(string.char(39))
-					-- while first do
-						-- print(first)
-						-- print(string.format("%q",it.item:sub(first)))
-						-- first,endd = it.item:find(string.char(39),endd+1)
-					-- end
-					--print(string.format("%q",it.item:sub(first)))
-				--end
 				local cleanst,structname,strtab,comstab,predec = self:clean_structR1(it,doheader)
 				if not structname  then --unamed nested struct
 					--print("----generate unamed nested struct----",it.name)
@@ -2043,7 +2117,7 @@ function M.Parser()
 						table.insert(commtab,{above=it.prevcomments,sameline=it.comments})--it.comments or "")
 					end
 					
-					if doheader then
+					if doheader and not it.opaque_struct then
 						local tst = "\ntypedef struct "..structname.." "..structname..";\n"
 						if check_unique_typedefs(tst,uniques) then
 							--table.insert(outtab,tst)
@@ -2054,7 +2128,11 @@ function M.Parser()
 					predeclare = predeclare .. predec .. cleanst
 				end
 			elseif it.re_name == "enum_re" then
-				--nop
+				if doheader then 
+					local outtab1 = {}
+					self:enum_for_header( it, outtab1)
+					predeclare = predeclare .. table.concat(outtab1)
+				end
 			elseif it.re_name ~= "functionD_re" and it.re_name ~= "function_re" and it.re_name ~= "operator_re" then
 				print(it.re_name,"not processed clean_struct in",stname,it.item:sub(1,24))
 				--M.prtable(it)
@@ -2085,6 +2163,7 @@ function M.Parser()
 		return parnam
 	end
 	function par:header_text_insert(tab,txt,it)
+		--print("--header_text_insert",txt)--:sub(1,40)) 
 		table.insert(tab, txt)
 	end
 	local function function_parse(self,it)
@@ -2093,6 +2172,7 @@ function M.Parser()
 		if it.parent then
 			if it.parent.re_name == "struct_re" or it.parent.re_name == "typedef_st_re" or it.parent.re_name == "class_re" then
 				stname = it.parent.name
+				namespace = get_parents_nameC(it)
 			elseif it.parent.re_name == "namespace_re" then
 				namespace = get_parents_nameC(it) --it.parent.name
 			end
@@ -2111,6 +2191,48 @@ function M.Parser()
 			self:parseFunction(stname,it,namespace,it.locat)
 		end
 	end
+	function par:enum_for_header( it,outtab)
+				--local enumname, enumbody = it.item:match"^%s*enum%s+([^%s;{}]+)[%s\n\r]*(%b{})"
+				local enumname = it.item:match"^%s*enum%s+([^%s;{}]+)"
+				if enumname then
+					--if it's an enum with int type changed
+					if self.structs_and_enums_table.enumtypes[enumname] then
+						local enumtype = self.structs_and_enums_table.enumtypes[enumname]
+						local enumbody = ""
+						local extraenums = ""
+						for i,v in ipairs(self.structs_and_enums_table.enums[enumname]) do
+							if type(v.calc_value)=="string" then
+								extraenums = extraenums .."\nstatic const "..enumtype.." "..v.name.." = "..v.calc_value..";"
+							else
+								enumbody = enumbody .. "\n" ..v.name .."="..v.value..","
+							end
+						end
+						enumbody = "{"..enumbody.."\n}"
+						--table.insert(outtab,"\ntypedef enum ".. enumbody..enumname..";"..extraenums)
+						local it2 = "\ntypedef enum ".. enumbody..enumname..";"..extraenums
+						self:header_text_insert(outtab, it2, it)
+					else
+						local enumbody = it.item:match"(%b{})"
+						enumbody = clean_comments(enumbody)
+						--table.insert(outtab,"\ntypedef enum ".. enumbody..enumname..";")
+						local it2 = "\ntypedef enum ".. enumbody..enumname..";"
+						self:header_text_insert(outtab, it2, it)
+					end
+					if it.parent then
+						if it.parent.re_name == "namespace_re" then
+							local namespace = it.parent.item:match("namespace%s+(%S+)")
+							self.embeded_enums[enumname] = namespace.."::"..enumname
+						else
+							self.embeded_enums[enumname] = it.parent.name.."::"..enumname
+						end
+					end
+				else --unamed enum just repeat declaration
+					local cl_item = clean_comments(it.item)
+					--table.insert(outtab,cl_item)
+					self:header_text_insert(outtab, cl_item, it)
+					print("unnamed enum",cl_item)
+				end
+	end
 	function par:gen_structs_and_enums()
 		print"--------------gen_structs_and_enums"
 		--M.prtable(self.typenames)
@@ -2118,10 +2240,13 @@ function M.Parser()
 		local outtabpre = {}
 		local typedefs_table = {}
 		self.embeded_enums = {}
-		--local uniques = {}
+		--local uniques = {} 
 		
 		local processer = function(it)
-			--print("gen_structs_and_enums",it.re_name, it.name)
+			-- if it.re_name == "enum_re" then
+				-- it.name =  it.item:match"^%s*enum%s+([^%s;{}]+)"
+			-- end
+			-- print("gen_structs_and_enums",it.re_name, it.name)
 			--table.insert(outtab,it.re_name.." "..(it.name or "unkn "))
 			if it.re_name == "typedef_re" or it.re_name == "functypedef_re" or it.re_name == "vardef_re" then
 				if not it.parent or it.parent.re_name=="namespace_re" then
@@ -2187,6 +2312,12 @@ function M.Parser()
 					end
 				end
 			elseif it.re_name == "enum_re" then
+				--dont insert child enums as they are inserted before parent struct
+				if not (it.parent and (it.parent.re_name == "struct_re" or it.parent.re_name == "class_re")) then
+						--self:header_text_insert(outtab, predec .. cleanst, it)
+						self:enum_for_header(it,outtab)
+				end
+				--[[
 				--local enumname, enumbody = it.item:match"^%s*enum%s+([^%s;{}]+)[%s\n\r]*(%b{})"
 				local enumname = it.item:match"^%s*enum%s+([^%s;{}]+)"
 				if enumname then
@@ -2227,8 +2358,14 @@ function M.Parser()
 					self:header_text_insert(outtab, cl_item, it)
 					print("unnamed enum",cl_item)
 				end
+				--]]
 			elseif it.re_name == "struct_re" or it.re_name == "typedef_st_re" or it.re_name == "class_re" then
+				if it.opaque_struct then
+					self:header_text_insert(outtab, "\ntypedef struct "..it.name.."* "..it.name.."_opq;\n",it)
+				else
+				--self:header_text_insert(outtab,"\n///inittt "..it.name.."\n", it)
 				local cleanst,structname,strtab,comstab,predec = self:clean_structR1(it,true)
+				--self:header_text_insert(outtab,"\n///endttt "..it.name.."\n", it)
 				if not structname then print("NO NAME",cleanst,it.item) end
 				--if not void stname or templated
 				if structname and not self.typenames[structname] then
@@ -2265,6 +2402,7 @@ function M.Parser()
 						end
 					end
 				end
+				end --opaque_struct
 			elseif it.re_name == "namespace_re" or it.re_name == "union_re" or it.re_name == "functype_re" then
 				--nop
 			elseif it.re_name == "functionD_re" or it.re_name == "function_re" then
@@ -2287,6 +2425,10 @@ function M.Parser()
 		-- end
 		--check arg detection failure if no name in function declaration
 		check_arg_detection(self.defsT,self.typedefs_dict)
+		--table.insert(outtabpre,1,"\n/////outtabpre start\n")
+		--table.insert(outtabpre,"\n/////outtabpre end\n")
+		--table.insert(outtab,1,"\n/////outtab start\n")
+		--table.insert(outtab,"\n/////outtab end\n")
 		local outtabprest, outtabst = table.concat(outtabpre,""),table.concat(outtab,"")
 		outtabprest = M.header_subs_nonPOD(self,outtabprest)
 		outtabst = M.header_subs_nonPOD(self,outtabst)
@@ -2309,6 +2451,7 @@ function M.Parser()
 			table.insert(outtab,{type=t1..t2,name=name,comment=comment})
 		else
 			--split type name1,name2; in several lines
+			--print(line)
 			local typen,rest = line:match("%s*([^,]+)%s(%S+[,;])")
 			--print(typen,"rest:",rest)
             if not typen then -- Lets try Type*name
@@ -2406,7 +2549,7 @@ function M.Parser()
 	par.enums_for_table = enums_for_table
 	function par:gen_structs_and_enums_table()
 		print"--------------gen_structs_and_enums_table"
-		local outtab = {enums={},structs={},locations={},enumtypes={},struct_comments={},enum_comments={}}
+		local outtab = {enums={},structs={},locations={},enumtypes={},struct_comments={},enum_comments={},opaque_structs={}}
 		--self.typedefs_table = {}
 		local enumsordered = {}
 		unnamed_enum_counter = 0
@@ -2469,6 +2612,7 @@ function M.Parser()
 				enums_for_table(it, outtab, enumsordered)
 			elseif it.re_name == "struct_re" or it.re_name == "typedef_st_re" or it.re_name == "class_re" then
 				local cleanst,structname,strtab,comstab = self:clean_structR1(it)
+				if it.name then outtab.opaque_structs[it.name] = it.opaque_struct end
 				--if not void stname or templated
 				if not structname then print("NO NAME",cleanst,it.item) end
 				if structname and not self.typenames[structname] then
@@ -2476,16 +2620,24 @@ function M.Parser()
 					outtab.struct_comments[structname] = {sameline=it.comments,above=it.prevcomments}
 					outtab.struct_comments[structname] = next(outtab.struct_comments[structname]) and outtab.struct_comments[structname] or nil
 					outtab.locations[structname] = it.locat
+					if strtab then
 					for j=3,#strtab-1 do
 						self:parse_struct_line(strtab[j],outtab.structs[structname],comstab[j])
 					end
+					end
+					-- if structname == "Change" then
+						-- print(it.item)
+						-- M.prtable(outtab.structs[structname])
+					-- end
 				else
 					--templated struct
 					if structname then
 						print("saving templated struct",structname)
 						self.templated_structs[structname] = {}
+						if strtab then
 						for j=3,#strtab-1 do
 							self:parse_struct_line(strtab[j],self.templated_structs[structname],comstab[j])
+						end
 						end
 						--M.prtable(self.templated_structs[structname])
 					else
@@ -3074,7 +3226,7 @@ local function ImGui_f_implementation(def)
     table.insert(outtab,"CIMGUI_API".." "..def.ret.." "..def.ov_cimguiname..def.args.."\n")
     table.insert(outtab,"{\n")
 	local namespace = def.namespace and def.namespace.."::" or ""
-	namespace = def.is_static_function and namespace..def.stname.."::" or namespace
+	--namespace = def.is_static_function and namespace..def.stname.."::" or namespace
     if def.isvararg then
         local call_args = def.call_args:gsub("%.%.%.","args")
         table.insert(outtab,"    va_list args;\n")
@@ -3167,7 +3319,9 @@ local function func_implementation(FP)
 			custom = FP.custom_implementation(outtab, def, FP)
 		end
         local manual = FP.get_manuals(def)
-        if not custom and not manual and not def.templated and not FP.get_skipped(def) then 
+        if not custom and not manual and not def.templated and not FP.get_skipped(def) 
+		and not (FP.opaque_structs[def.stname] and not def.is_static_function) 
+		then
             if def.constructor then
 				local tab = {}
                 assert(def.stname ~= "","constructor without struct")
@@ -3232,10 +3386,17 @@ local function func_header_generate_structs(FP)
 	table_do_sorted(FP.embeded_enums,function(k,v) table.insert(outtab,"typedef "..v.." "..k..";\n") end)
 	--table.insert(outtab, "\n//////////templates\n")
 	table_do_sorted(FP.templates,function(ttype,v)
-		table_do_sorted(v,function(ttypein,te)
-			local ttype2 = ttype:gsub("::","_") --std::string
-			table.insert(outtab,"typedef "..ttype.."<"..ttypein.."> "..ttype2.."_"..te..";\n")
-		end)
+		--print("func_header_generate_structs",ttype)
+		if not (ttype == "std::function") then
+			table_do_sorted(v,function(ttypein,te)
+				local ttype2 = ttype:gsub("::","_") --std::string
+				table.insert(outtab,"typedef "..ttype.."<"..ttypein.."> "..ttype2.."_"..te..";\n")
+			end)
+		end
+	end)
+	
+	table_do_sorted(FP.opaque_structs,function(k,v)
+		table.insert(outtab,"typedef const "..v.."* "..k.."_opq;\n") 
 	end)
 	--table.insert(outtab, "\n//////////end func header\n")
 	return outtab
@@ -3258,7 +3419,8 @@ local function func_header_generate_funcs(FP)
 			custom = FP.custom_header(outtab, def)
 		end
         local manual = FP.get_manuals(def)
-        if not custom and not manual and not def.templated and not FP.get_skipped(def) then
+        if not custom and not manual and not def.templated and not FP.get_skipped(def) and 
+		not (FP.opaque_structs[def.stname] and not def.is_static_function) then
 
             local addcoment = "" --def.comment or ""
             local empty = def.args:match("^%(%)") --no args

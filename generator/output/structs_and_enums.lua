@@ -4617,6 +4617,7 @@ local t={
     ImVec2=true,
     ImVec2i=true,
     ImVec4=true},
+  opaque_structs={},
   structs={
     ImBitVector={
       [1]={
