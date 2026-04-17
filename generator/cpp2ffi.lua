@@ -789,7 +789,7 @@ local function parseFunction(self,stname,itt,namespace,locat)
 		end
 	end
 	
-	
+	--[[
 	--- templates in args
 	for i,ar in ipairs(argsTa) do
 		--TODO several diferent templates
@@ -803,13 +803,23 @@ local function parseFunction(self,stname,itt,namespace,locat)
 		end
 	    argsTa[i] = te and code2 or ar --ar:gsub("<([%w_%*%s]+)>",te) --ImVector
 	end
-
+--]]
 	--get typ, name and defaults
 	local functype_re =        "^%s*[%w%s%*]+%(%*%s*[%w_]+%)%([^%(%)]*%)"
     local functype_reex =     "^(%s*[%w%s%*]+)%(%*%s*([%w_]+)%)(%([^%(%)]*%))"
 	local argsTa2 = {}
 	local noname_counter = 0
 	for i,ar in ipairs(argsTa) do
+		local ttype,template,te,code2 = check_template(ar) --ar:match("([^%s,%(%)]+)%s*<(.-)>")
+		if template then
+			if self.typenames[stname] ~= template then --rule out template typename
+				self.templates[ttype] = self.templates[ttype] or {}
+				self.templates[ttype][template] = te
+			end
+		end
+	    argsTa[i] = te and code2 or ar 
+		local template_orig = te and ar or nil
+		ar = argsTa[i]
 		--avoid var name without space type&name -> type& name
 		-- also do type &name -> type& name
 		--ar = ar:gsub("(%S)&(%S)","%1& %2")
@@ -862,7 +872,7 @@ local function parseFunction(self,stname,itt,namespace,locat)
                 name = name:gsub("(%[%d*%])","")
             end
 		end
-		argsTa2[i] = {type=typ,name=name,default=defa,reftoptr=reftoptr,ret=retf,signature=sigf,has_cdecl=has_cdecl}
+		argsTa2[i] = {type=typ,name=name,default=defa,reftoptr=reftoptr,ret=retf,signature=sigf,has_cdecl=has_cdecl,template_orig=template_orig}
 		if ar:match("&") and not ar:match("const") then
             --only post error if not manual
             local cname = self.getCname(stname,funcname, namespace) --cimguiname
@@ -1342,6 +1352,82 @@ local function header_subs_nonPOD(FP,txt)
 	return txt
 end
 M.header_subs_nonPOD = header_subs_nonPOD
+local function get_std_function(ar)
+	local skip = false
+	local ty=ar.template_orig:gsub(ar.name,"")
+	ty = ty:match("std::function(%b<>)")
+	ty = ty:sub(2,-2)
+	local ret, args = ty:match("([^%(%)]+)(%b())")
+	local ret2
+	if ret:match"std::string_view" then
+		ret2 = "const char*"
+	elseif ret:match"std::string" then
+		ret2 = "const char*"
+	end
+	args = args:sub(2,-2)
+	local argsT = strsplit(args,",")
+	--get noname args
+	local argsT2 = {}
+	local noname_counter = 0
+	for i,v in ipairs(argsT) do
+		local typ, name = v:match("(.+)%s+(%w+)")
+		if not name then
+			typ = v
+			noname_counter = noname_counter + 1
+			name = "noname" .. noname_counter
+		end
+		argsT2[i] = {type=typ,name=name}
+	end
+	--get conversions
+	local argsT3 = {}
+	for i,v in ipairs(argsT2) do
+		local typ,name,conv
+		if v.type:match("std::string_view") then
+			typ = "const char*"
+			conv = v.name..".data()"
+		elseif v.type:match("std::string") then
+			typ = "const char*"
+			conv = v.name..".c_str()"
+		elseif v.type:match("std::") then
+			skip = true
+		else
+		end
+		argsT3[i] = {type=typ or v.type,conv=conv,name=v.name} 
+	end
+	local asp = ""
+	local caar1 = ""
+	local caar2 = ""
+	for i,v in ipairs(argsT3) do
+		asp = asp..v.type..","
+		caar1 = caar1 .. argsT2[i].type.." "..argsT2[i].name..","
+		caar2 = caar2..(argsT3[i].conv or argsT3[i].name)..","
+	end
+	caar1 = caar1:sub(1,-2)
+	caar1 = "[cb]("..caar1..")"
+	caar2 = caar2:sub(1,-2)
+	caar2 = "cb("..caar2..")"
+	if ret ~= "void" then
+		if ret:match"std::string$" then
+			caar2 = "return std::string("..caar2..")"
+		-- elseif ret:match"std::string_view" then
+			-- caar2 = "return "..caar2..".data()"
+		else
+			caar2 = "return "..caar2
+		end
+	end
+	local caar = caar1 .."{"..caar2..";}"
+	asp = asp:sub(1,-2)
+	asp = (ret2 or ret).."(*cb)("..asp..")"
+	-- print(ty,ret,args)
+	-- M.prtable(argsT3)
+	-- print("ret",ret)
+	-- print("asp",asp)
+	-- print("caar1",caar1)
+	-- print("caar2",caar2)
+	-- print("caar",caar)
+	-- print("skip",skip)
+	return caar,asp,skip
+end
 local function ADDnonUDT(FP)
 	local nonPOD = get_nonPOD(FP)
 	get_nonPODused(FP)
@@ -1394,6 +1480,12 @@ local function ADDnonUDT(FP)
 						elseif v.type:match("std::string") then
 							caar = caar .. "std::string("..name.."),"
 							asp = asp .. "const char* "..v.name..","
+						elseif v.type:match"std::function" then
+							local ca2,asp2,skip2 = get_std_function(v)
+							caar = caar .. ca2..","
+							asp = asp .. asp2..","
+							if skip2 then skip = true end
+							--skip = true
 						elseif v.type:match("std::") then
 							skip = true
 						elseif FP.opaque_structs[typ2] then
@@ -1937,7 +2029,7 @@ function M.Parser()
 		--save_data("./preparse"..tostring(self):gsub("table: ","")..".c",txt)
 		--]]
 		self.itemsarr = par:parseItemsR2(txt)
-		--save_data("./itemsarr.lua",ToStr(self.itemsarr))
+		save_data("./itemsarr.lua",ToStr(self.itemsarr))
 		itemsarr = self.itemsarr
 		---find opaque_structs
 		self:Listing(itemsarr,function(it) 
@@ -2646,7 +2738,7 @@ function M.Parser()
 				end
 			elseif it.re_name == "namespace_re" or it.re_name == "union_re" or it.re_name == "functype_re" then
 				--nop
-			elseif it.re_name ~= "functionD_re" or it.re_name ~= "function_re" then
+			elseif it.re_name == "functionD_re" or it.re_name == "function_re" then
 				function_parse(self,it)
 			elseif it.re_name ~= "operator_re" then
 				print("---not processed gen table",it.re_name)

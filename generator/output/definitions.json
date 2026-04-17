@@ -605,6 +605,7 @@
         {
           "name": "rhs",
           "reftoptr": true,
+          "template_orig": "ImChunkStream<T>& rhs",
           "type": "ImChunkStream_T *"
         }
       ],
@@ -4883,6 +4884,7 @@
         },
         {
           "name": "out_ranges",
+          "template_orig": "ImVector<ImWchar>* out_ranges",
           "type": "ImVector_ImWchar*"
         }
       ],
@@ -11271,6 +11273,7 @@
         },
         {
           "name": "out",
+          "template_orig": "ImVector<ImGuiTextRange>* out",
           "type": "ImVector_ImGuiTextRange*"
         }
       ],
@@ -14579,6 +14582,7 @@
       "argsT": [
         {
           "name": "src",
+          "template_orig": "const ImVector<T>& src",
           "type": "const ImVector_T "
         }
       ],
@@ -15572,6 +15576,7 @@
         {
           "name": "rhs",
           "reftoptr": true,
+          "template_orig": "ImVector<T>& rhs",
           "type": "ImVector_T *"
         }
       ],
@@ -15679,6 +15684,7 @@
         },
         {
           "name": "out_list",
+          "template_orig": "ImVector<ImDrawList*>* out_list",
           "type": "ImVector_ImDrawListPtr*"
         },
         {
@@ -19795,6 +19801,7 @@
       "argsT": [
         {
           "name": "windows",
+          "template_orig": "ImVector<ImGuiWindow*>* windows",
           "type": "ImVector_ImGuiWindowPtr*"
         },
         {
@@ -20133,6 +20140,7 @@
         },
         {
           "name": "in_window_remap_pairs",
+          "template_orig": "ImVector<const char*>* in_window_remap_pairs",
           "type": "ImVector_const_charPtr*"
         }
       ],
@@ -20164,6 +20172,7 @@
         },
         {
           "name": "out_node_remap_pairs",
+          "template_orig": "ImVector<ImGuiID>* out_node_remap_pairs",
           "type": "ImVector_ImGuiID*"
         }
       ],
