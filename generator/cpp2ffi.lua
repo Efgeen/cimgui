@@ -463,7 +463,7 @@ local function parseItems(txt,linenumdict, itparent, dumpit)
 							--take locat from parent
 							if itparent and itparent.locat then
 								loca = itparent.locat
-								print("parent loca",string.format("%q , %q ",itemold,itemfirstline),#itemfirstline,loca)
+								--print("parent loca",string.format("%q , %q ",itemold,itemfirstline),#itemfirstline,loca)
 							else
 								loca = 0
 								print("not loca",string.format("%q , %q ",itemold,itemfirstline),#itemfirstline,loca)
@@ -1157,6 +1157,7 @@ local function get_nonPOD(FP)
 		end
 	end
 	FP.structs_and_enums_table.nonPOD = nonPOD
+	M.prtable("nonPOD",nonPOD)
 	return nonPOD
 end
 local function recur_calc_depth(FP, structs, k,n)
@@ -1722,6 +1723,12 @@ local function save_output(self)
 	save_data("./output/structs_and_enums.json",json.encode(self.structs_and_enums_table))
 	save_data("./output/typedefs_dict.json",json.encode(self.typedefs_dict))
 	save_data("./output/constants.json",json.encode(self.constants))
+	
+	local modulename = self.modulename
+	copyfile("./output/"..modulename..".h", "../"..modulename..".h")
+	copyfile("./output/"..modulename..".cpp", "../"..modulename..".cpp")
+	os.remove("./output/"..modulename..".h")
+	os.remove("./output/"..modulename..".cpp")
 end
 -------------
 local numerr = 0 --for popen error file
@@ -3037,6 +3044,30 @@ function M.Parser()
 		end
 		return table.concat(precode).."\ntypedef struct "..ttype.."_"..newte.." {"..table.concat(code).."} "..ttype.."_"..newte..";\n"
 	end
+	--generate cimgui.cpp cimgui.h 
+	function par:cimgui_generation( cimgui_header)
+		local name = self.modulename
+		local hstrfile = read_data("./"..name.."_template.h")
+		
+		local outpre,outpost = self.structs_and_enums[1], self.structs_and_enums[2]
+		local tdt = self:generate_templates()
+		local cstructsstr = outpre..tdt..outpost 
+	
+		hstrfile = hstrfile:gsub([[#include "imgui_structs%.h"]],cstructsstr)
+		hstrfile = hstrfile:gsub([[PLACE_STRUCTS_C]],self:gen_structs_c())
+		local cfuncsstr = M.func_header_generate(self)
+		hstrfile = hstrfile:gsub([[#include "auto_funcs%.h"]],cfuncsstr)
+		save_data("./output/"..name..".h",cimgui_header,hstrfile)
+		
+		--merge it in cimplot_template.cpp to cimplot.cpp
+		local cimplem = M.func_implementation(self)
+	
+		local hstrfile = read_data("./"..name.."_template.cpp")
+	
+		hstrfile = hstrfile:gsub([[#include "auto_funcs%.cpp"]],cimplem)
+		save_data("./output/"..name..".cpp",cimgui_header,hstrfile)
+	
+	end
 	return par
 end
 -- more compact serialization
@@ -3570,6 +3601,55 @@ local function func_header_generate(FP)
 end
 
 M.func_header_generate = func_header_generate
+function M.GetScriptArgs(defines,...)
+	assert(_VERSION=='Lua 5.1',"Must use LuaJIT")
+	assert(bit,"Must use LuaJIT")
+	local script_args = {...}
+	local COMPILER = script_args[1]
+	local INTERNAL_GENERATION = (script_args[2] and script_args[2]:match("internal")) and true or false
+	local COMMENTS_GENERATION = (script_args[2] and script_args[2]:match("comments")) and true or false
+	
+	local predefine = COMPILER == "cl" and "/D" or "-D"
+	local defines_str = ""
+	for i,define in ipairs(defines) do
+		defines_str = defines_str .. " "..predefine..define
+	end
+
+	local CPRE,CTEST
+	if COMPILER == "gcc" or COMPILER == "clang" or COMPILER == "g++" then
+		CPRE = COMPILER..[[ -E -dD -std=c++17 -DIMGUI_DISABLE_OBSOLETE_FUNCTIONS -DIMGUI_API="" ]]..defines_str ---std=c++17
+		CTEST = COMPILER.." --version"
+	elseif COMPILER == "cl" then
+		CPRE = COMPILER..[[ /E /d1PP /DIMGUI_DISABLE_OBSOLETE_FUNCTIONS /DIMGUI_API="" ]]..defines_str
+		CTEST = COMPILER
+	else
+		print("Working without compiler ")
+		error("cant work with "..COMPILER.." compiler")
+	end
+	--test compiler present
+	local HAVE_COMPILER = false
+	
+	local pipe,err = io.popen(CTEST,"r")
+	if pipe then
+		local str = pipe:read"*a"
+		print(str)
+		pipe:close()
+		if str=="" then
+			HAVE_COMPILER = false
+		else
+			HAVE_COMPILER = true
+		end
+	else
+		HAVE_COMPILER = false
+		print(err)
+	end
+	assert(HAVE_COMPILER,"gcc, clang or cl needed to run script")
+	
+	print("HAVE_COMPILER",HAVE_COMPILER)
+	print("INTERNAL_GENERATION",INTERNAL_GENERATION)
+	
+	return COMPILER, CPRE, INTERNAL_GENERATION,COMMENTS_GENERATION
+end
 --[=[
 -- tests
 

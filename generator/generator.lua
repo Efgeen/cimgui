@@ -379,16 +379,15 @@ end
 local function parseImGuiHeader(header,names)
 	--prepare parser
 	local parser = cpp2ffi.Parser()
-	
+	parser.modulename = "cimgui"
 	parser.getCname = function(stname,funcname,namespace)
 		local pre = (stname == "") and (namespace and (namespace=="ImGui" and "ig" or namespace.."_") or "ig") or stname.."_"
 		return pre..funcname
 	end
 	parser.cname_overloads = cimgui_overloads
-	--parser.manuals = cimgui_manuals
 	parser:set_manuals(cimgui_manuals, "cimgui")
 	parser.skipped = cimgui_skipped
-	parser.UDTs = {"ImVec2","ImVec4","ImColor","ImRect"}
+	--parser.UDTs = {"ImVec2","ImVec4","ImColor","ImRect"}
 	--parser.gen_template_typedef = gen_template_typedef --use auto
 	parser.COMMENTS_GENERATION = COMMENTS_GENERATION
 	parser.CONSTRUCTORS_GENERATION = CONSTRUCTORS_GENERATION
@@ -547,9 +546,5 @@ if parser2 then
     save_data("./output/impl_definitions.json",json.encode(json_prepare(parser2.defsT),{dict_on_empty={defaults=true}}))
 end
 --]]
--------------------copy C files to repo root
-copyfile("./output/cimgui.h", "../cimgui.h")
-copyfile("./output/cimgui.cpp", "../cimgui.cpp")
-os.remove("./output/cimgui.h")
-os.remove("./output/cimgui.cpp")
+
 print"all done!!"
