@@ -976,6 +976,12 @@ local function parseFunction(self,stname,itt,namespace,locat)
 		defT.stdret = line:match("^\n*%s*std::")
 		--if ret:match"string" then print("parsefunction",defT.cimguiname, ret, line) end
         defT.ret = clean_spaces(ret:gsub("&","*"))
+		--name_conversion
+		local rr = defT.ret:gsub("*","")
+		rr = rr:gsub("const ","")
+		if self.name_conversion and self.name_conversion[rr] then
+			defT.ret = defT.ret:gsub(rr,self.name_conversion[rr])
+		end
         defT.retref = ret:match("&")
         -- if defT.ret=="ImVec2" or defT.ret=="ImVec4" or defT.ret=="ImColor" then
             -- defT.ret = defT.ret.."_Simple"
@@ -1324,19 +1330,7 @@ local function get_nonPODused(FP)
 	FP.structs_and_enums_table.nonPOD_used = FP.nP_used
 	FP.nP_args = typeargs
 	FP.nP_ret = typeargs_ret
-	--genConversions(FP)
-	--M.prtable(typeargs,typeargs_ret,all_type_nP)
-	-- local typeargs2 = {}
-	-- for k,v in pairs(typeargs) do table.insert(typeargs2,k) end
-	-- table.sort(typeargs2)
-	-- print"------------typeargs2----------------"
-	-- M.prtable(typeargs2)
-	
-	-- local typeargs2_ret = {}
-	-- for k,v in pairs(typeargs_ret) do table.insert(typeargs2_ret,k) end
-	-- table.sort(typeargs2_ret)
-	-- print"------------typeargs2_ret----------------"
-	-- M.prtable(typeargs2_ret)
+	M.prtable("np_ret",FP.nP_ret)
 
 end
 local function header_subs_nonPOD(FP,txt)
@@ -1438,26 +1432,31 @@ local function ADDnonUDT(FP)
 			--ret
 			local rets = (def.ret or ""):gsub("const ","")
 			rets = rets:gsub("*","")
+			--returns nonPOD -> nonPOD_c with conversion
 			if FP.nP_ret[def.ret] then
-				def.conv = (def.ret):gsub("const ","")
+				def.conv = (def.ret)--:gsub("const ","")
 				def.ret = FP.nP_ret[def.ret]
 				def.nonUDT = 1
+			--returns nonPOD* -> returns nonPOD_c with reinterpret_cast
 			elseif FP.nP_ret[rets] then
 				def.ret = def.ret:gsub(rets, FP.nP_ret[rets])
 				def.nonUDT = 2
+			--return std::string -> return const char*
 			elseif def.ret=="string" then
 				def.ret = "const char*"
 				def.nonUDT = "string"
+			--return opaque_struct
 			elseif FP.opaque_structs[rets] then
 				if not def.ret:match"%*" then
 					--assert(def.ret:match"%*","return opaque struct without pointer")
 					--M.prtable(def)
 					--error"return opaque struct without pointer"
 					def.nonUDT = "opaque"
-					def.ret = def.ret:gsub(rets,rets.."_opq")
+					def.ret = def.ret.."*" --def.ret:gsub(rets,rets.."_opq")
 				else
-					def.ret = def.ret:gsub(rets.."%s*%*",rets.."_opq")
+					--def.ret = def.ret:gsub(rets.."%s*%*",rets.."_opq")
 				end
+			--return std:: -> skip function
 			elseif def.stdret then -- not std::string
 				skip = true
 			end
@@ -1475,9 +1474,11 @@ local function ADDnonUDT(FP)
 					else
 						local typ = v.type:gsub("const ","")
 						local typ2 = typ:gsub("*","")
+						--nonPOD arg -> convert
 						if FP.nP_args[v.type] then
 							caar = caar .. "ConvertToCPP_"..typ.."("..name.."),"
 							asp = asp .. v.type:gsub(typ,typ.."_c").." "..v.name..","
+						--nonPOD* arg -> reinterpret_cast
 						elseif FP.nP_args[typ2] then
 							local typ3 = v.type:gsub(typ2,typ2.."_c")
 							caar = caar .. "reinterpret_cast<"..v.type..">("..name.."),"
@@ -1501,12 +1502,12 @@ local function ADDnonUDT(FP)
 							if not v.type:match"%*" then
 								--M.prtable(def)
 								--error"opaque struct arg without pointer"
-								local newt = v.type:gsub(typ2,typ2.."_opq")
+								local newt = v.type.."*" --v.type:gsub(typ2,typ2.."_opq")
 								local callname = "*"..name
 								caar = caar .. callname .. ","
 								asp = asp .. newt.." "..name .. ","
 							else
-								local newt = v.type:gsub(typ2.."%s*%*",typ2.."_opq")
+								local newt = v.type --v.type:gsub(typ2.."%s*%*",typ2.."_opq")
 								local callname = v.reftoptr and "*"..name or name
 								caar = caar .. callname .. ","
 								asp = asp .. newt.." "..name .. ","
@@ -1945,6 +1946,10 @@ function M.Parser()
 				it.item = it.item:gsub("enum%s*class","enum")
 			elseif it.re_name == "struct_re" then
 				it.name = it.item:match("struct%s+([^%s{]+)")
+				if self.name_conversion and self.name_conversion[it.name] then
+					it.name = self.name_conversion[it.name]
+					print("=========conversion",it.name)
+				end
 			elseif it.re_name == "namespace_re" then
 				it.name = it.item:match("namespace%s+(%S+)")
 			end
@@ -1962,8 +1967,8 @@ function M.Parser()
 				if it.re_name == "struct_re" then
 					local typename = it.item:match("^%s*template%s*<%s*typename%s*(%S+)%s*>")
 					--local stname = it.item:match("struct%s+(%S+)")
-					local stname = it.item:match("struct%s+([^%s{]+)") --unamed
-					it.name = stname
+					--local stname = it.item:match("struct%s+([^%s{]+)") --unamed
+					local stname = it.name
 					
 					--local templa1,templa2 = it.item:match("^%s*template%s*<%s*(%S+)%s*(%S+)%s*>")
 					local templa2 = it.item:match("^%s*template%s*<%s*([^<>]+)%s*>")
@@ -2204,6 +2209,12 @@ function M.Parser()
 				error"could not get stname"
 			end
 		end
+		
+		if self.name_conversion and self.name_conversion[stname] then
+			itst.or_name = stname
+			stname = self.name_conversion[stname]
+		end
+		--stname = self.name_conversion and self.name_conversion[stname] or stname
 		--initial
 
 		table.insert(outtab,"\nstruct "..stname.."\n")
@@ -2477,6 +2488,9 @@ function M.Parser()
 					end
 					--table.insert(outtabpre,it2)
 					--table.insert(outtab,it2)
+					if it2:match"template" then
+						it2=""
+					end
 					self:header_text_insert(outtab, it2, it)
 					-- add typedef after struct name
 					if it.re_name == "vardef_re" and it.item:match"^%s*struct" then
@@ -2506,7 +2520,8 @@ function M.Parser()
 
 			elseif it.re_name == "struct_re" or it.re_name == "typedef_st_re" or it.re_name == "class_re" then
 				if it.opaque_struct then
-					self:header_text_insert(outtab, "\ntypedef struct "..it.name.."* "..it.name.."_opq;\n",it)
+					--self:header_text_insert(outtab, "\ntypedef struct "..it.name.."* "..it.name.."_opq;\n",it)
+					self:header_text_insert(outtab, "\ntypedef struct "..it.name.." "..it.name..";\n",it)
 				else
 				--self:header_text_insert(outtab,"\n///inittt "..it.name.."\n", it)
 				local cleanst,structname,strtab,comstab,predec = self:clean_structR1(it,true)
@@ -2537,13 +2552,14 @@ function M.Parser()
 					--print("--------embedd1",it.re_name, it.name, embededst)
 					--TODO nesting namespace and class
 					if embededst then --discards false which can happen with untagged structs
+						local embed2 = it.or_name or it.name
 						local parname = get_parents_name(it)
 						if it.parent.re_name == "struct_re" then
 							--needed by cimnodes with struct tag name equals member name
-							self.embeded_structs[embededst] = "struct "..parname..embededst
+							self.embeded_structs[embededst] = "struct "..parname..embed2
 						else
 							--print("---------embeddd2",parname,embededst)
-							self.embeded_structs[embededst] = parname..embededst
+							self.embeded_structs[embededst] = parname..embed2
 						end
 					end
 				end
@@ -3440,7 +3456,7 @@ local function ImGui_f_implementation(def)
         end
 		table.insert(outtab,"}\n")
     else --standard ImGui
-        table.insert(outtab,"    return "..ptret..(def.conv or "")..namespace..def.funcname..def.call_args..";\n")
+        table.insert(outtab,"    return "..ptret..namespace..def.funcname..def.call_args..";\n")
 		table.insert(outtab,"}\n")
     end
     --table.insert(outtab,"}\n")
@@ -3560,7 +3576,7 @@ M.table_do_sorted = table_do_sorted
 
 local function func_header_generate_structs(FP)
 
-    local outtab = {} --"\n/////func_header_generate_structs\n"}
+    local outtab = {}--"\n/////func_header_generate_structs\n"}
 
 	table_do_sorted(FP.embeded_structs,function(k,v) 
 		if not FP.typenames[k] then
@@ -3583,7 +3599,8 @@ local function func_header_generate_structs(FP)
 	--M.prtable(FP.typenames)
 	table_do_sorted(FP.opaque_structs,function(k,v)
 		if not FP.typenames[k] then
-			table.insert(outtab,"typedef const "..v.."* "..k.."_opq;\n") 
+			table.insert(outtab,"typedef "..v.." "..k..";\n") 
+			--table.insert(outtab,"typedef const "..v.."* "..k.."_opq;\n") 
 			--table.insert(outtab,"typedef "..v.."* "..k.."_opq;\n") 
 		end
 	end)
