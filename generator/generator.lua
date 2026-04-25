@@ -286,6 +286,7 @@ local function cimgui_generation(parser)
 	
 
 	local  tdt = parser:generate_templates()
+	cpp2ffi.prtable("generate_templates",tdt)
 	local cstructsstr = outpre..tdt..outpost 
     
 	if gdefines.IMGUI_HAS_DOCK then
@@ -456,7 +457,11 @@ if ff then
 else
 	backends_folder = IMGUI_PATH .. "/backends/"
 end
- 
+local function getCname(stname,funcname, namespace)
+		if #stname == 0 then return funcname end --top level
+		local pre = stname.."_"
+		return pre..funcname
+	end
 local parser2
 
 if #implementations > 0 then
@@ -488,9 +493,11 @@ if #implementations > 0 then
 			end
 		end
 		parser2.cimgui_inherited =  dofile([[./output/structs_and_enums.lua]])
+		parser2.getCname = getCname
 		local defines = parser2:take_lines(CPRE..extra_defines..extra_includes..source, {locati}, COMPILER)
 		
 		local parser3 = cpp2ffi.Parser()
+		parser3.getCname = getCname
 		parser3.cimgui_inherited =  dofile([[./output/structs_and_enums.lua]])
 		parser3:take_lines(CPRE..extra_defines..extra_includes..source, {locati}, COMPILER)
 		parser3:do_parse()
