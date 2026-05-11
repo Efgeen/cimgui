@@ -1769,6 +1769,7 @@ function M.Parser()
 	par.skipped = {}
 	par.UDTs = {}
 	par.opaque_structs = {}
+	par.forced_opaque = {}
 	
 	par.save_output = save_output
 	par.genConversors = genConversions
@@ -2022,11 +2023,16 @@ function M.Parser()
 						it.opaque_struct = get_parents_name(it)..it.name
 						self.opaque_structs[it.name] = it.opaque_struct
 					end
+					if self.forced_opaque[it.name] then
+						print("--make forced opaque opaque derived",it.name)
+						it.opaque_struct = get_parents_name(it)..it.name
+						self.opaque_structs[it.name] = it.opaque_struct
+					end
 					for j,child in ipairs(it.childs) do
 						-- if child.re_name == "vardef_re" and child.item:match"using" then
 							-- print("=====using",child.item)
 						-- end
-						if child.re_name == "vardef_re" and child.item:match"std::" then
+						if (child.re_name == "vardef_re") and child.item:match"std::" then
 							print("--make opaque",it.name,child.item)
 							--M.prtable(itparent)
 							--it.opaque_struct = (itparent and itparent.name .."::" or "")..it.name
@@ -2121,7 +2127,7 @@ function M.Parser()
 		--save_data("./preparse"..tostring(self):gsub("table: ","")..".c",txt)
 		--]]
 		self.itemsarr = par:parseItemsR2(txt)
-		save_data("./itemsarr.lua",ToStr(self.itemsarr))
+		save_data("./itemsarr.lua",M.serializeTableF(self.itemsarr))--ToStr(self.itemsarr))
 		itemsarr = self.itemsarr
 		---find opaque_structs
 		self:Listing(itemsarr,function(it) 
