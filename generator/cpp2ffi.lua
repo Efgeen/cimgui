@@ -229,12 +229,16 @@ local function parse_enum_value(value, allenums,dontpost)
 		------------precedence order (hope not ())
 		--delete (int)
 		value = value:gsub("%(int%)","")
+		value = value:gsub("%(%w+%)","")
 		--first drop outer ()
 		value = value:gsub("^(%()",""):gsub("(%))$","")
 		assert(not value:match("[%(%)]"),value)
 		
+		local numval = tonumber(value)
+		if numval then return numval end 
+		
 		local several,seps = strsplit(value,"([<>&|~%+%-]+)") 
-		--M.prtable(value,several,seps)
+		--M.prtable("ccc",value,tonumber(value),several,seps)
 		assert(#seps+1==#several)
 		
 		local i = 1
@@ -293,7 +297,7 @@ local function parse_enum_value(value, allenums,dontpost)
 			--M.prtable("allenums",allenums)
 		end
 		assert(#seps==0)
-		assert(type(several[1])=="number" or type(several[1])=="cdata")
+		assert(type(several[1])=="number" or type(several[1])=="cdata",type(several[1]))
 		--converst 1ULL to "1ULL"
 		if type(several[1])=="cdata" then several[1] = tostring(several[1]) end
 		return several[1]
@@ -343,7 +347,7 @@ local function getRE()
 	local res = {
 	function_re = "^([^;{}]+%b()[\n%s]*;)%s*",
 	function_re = "^([^;{}=]+%b()[\n%s%w]*;)", --const at the end
-	function_re = "^([^;{}=]+%b()[\n%s%w%(%)_]*;)", --attribute(deprecated)
+	function_re = "^([^;{}=]+%b()[\n%s=%w%(%)_]*;)", --attribute(deprecated)
 	--we need to skip = as function because of "var = f()" initialization in struct fields
 	-- but we don want operator== to appear as a var and as we should skip this kind of function solution is:
 	operator_re = "^([^;{}]+operator[^;{}]+%b()[\n%s%w%(%)_]*;)",
@@ -744,11 +748,13 @@ local function parseFunction(self,stname,itt,namespace,locat)
 		--print("template",lineorig)
 		return 
 	end
+	
     
     local ret = line:match("([^%(%):,]+[%*%s])%s?~?[_%w]+%b()")
 	--local ret = line:match("(.+[%*%s])%s?~?[_%w]+%b()")
     --local funcname, args = line:match("(~?[_%w]+)%s*(%b())")
 	local funcname, args, extraconst = line:match("(~?[_%w]+)%s*(%b())(.*)")
+	if extraconst == "=delete;" then return end
 	extraconst = extraconst:match("const")
 
 	if not args then
