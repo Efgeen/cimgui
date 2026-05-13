@@ -120,10 +120,12 @@ local save_data = cpp2ffi.save_data
 local copyfile = cpp2ffi.copyfile
 local serializeTableF = cpp2ffi.serializeTableF
 
-local function func_header_impl_generate(FP)
+local function func_header_impl_generate(FP, defines)
 
     local outtab = {}
-    
+    for k,v in pairs(defines) do
+		table.insert(outtab,"#define "..k.." "..v.."\n")
+	end
     -- for _,t in ipairs(FP.funcdefs) do
         -- if t.cimguiname then
             -- local cimf = FP.defsT[t.cimguiname]
@@ -495,13 +497,13 @@ if #implementations > 0 then
 		parser2.cimgui_inherited =  dofile([[./output/structs_and_enums.lua]])
 		parser2.getCname = getCname
 		local defines = parser2:take_lines(CPRE..extra_defines..extra_includes..source, {locati}, COMPILER)
-		
+
 		local parser3 = cpp2ffi.Parser()
 		parser3.getCname = getCname
 		parser3.cimgui_inherited =  dofile([[./output/structs_and_enums.lua]])
-		parser3:take_lines(CPRE..extra_defines..extra_includes..source, {locati}, COMPILER)
+		local defines = parser3:take_lines(CPRE..extra_defines..extra_includes..source, {locati}, COMPILER)
 		parser3:do_parse()
-		local cfuncsstr = func_header_impl_generate(parser3) 
+		local cfuncsstr = func_header_impl_generate(parser3, defines) 
 		local cstructstr1,cstructstr2 = parser3.structs_and_enums[1], parser3.structs_and_enums[2]
 		local cstru = cstructstr1 .. cstructstr2
 		if cstru ~="" then
