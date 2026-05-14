@@ -123,9 +123,10 @@ local serializeTableF = cpp2ffi.serializeTableF
 local function func_header_impl_generate(FP, defines)
 
     local outtab = {}
-    for k,v in pairs(defines) do
+	--may be key sorting is not enough and declaration order needed 
+    cpp2ffi.table_do_sorted(defines, function(k,v)
 		table.insert(outtab,"#define "..k.." "..v.."\n")
-	end
+	end)
     -- for _,t in ipairs(FP.funcdefs) do
         -- if t.cimguiname then
             -- local cimf = FP.defsT[t.cimguiname]
